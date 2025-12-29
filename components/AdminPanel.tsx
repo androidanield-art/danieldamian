@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { ServiceRequest, RequestStatus, ServiceCategory } from '../types';
 import { getRequests, updateRequestStatus, deleteRequest, saveRequest, updateRequest } from '../services/dataService';
-import { Clock, CheckCircle, PlayCircle, Trash2, Mail, FileText, Plus, X, Edit2, DollarSign, RefreshCw } from 'lucide-react';
+import { isSupabaseConfigured } from '../services/supabaseClient';
+import { Clock, CheckCircle, PlayCircle, Trash2, Mail, FileText, Plus, X, Edit2, DollarSign, RefreshCw, Database, Wifi, WifiOff } from 'lucide-react';
 
 // --- COMPONENTS ---
 
@@ -362,6 +363,7 @@ export const AdminPanel: React.FC<{onLogout: () => void}> = ({onLogout}) => {
   const [refresh, setRefresh] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<ServiceRequest | null>(null);
+  const isOnline = isSupabaseConfigured();
 
   useEffect(() => {
     const load = async () => {
@@ -408,22 +410,45 @@ export const AdminPanel: React.FC<{onLogout: () => void}> = ({onLogout}) => {
   return (
     <div className="min-h-screen bg-brand-black pt-24 pb-4 px-4 sm:px-6 lg:px-8 flex flex-col">
       <div className="max-w-[1920px] mx-auto w-full h-full flex flex-col flex-1">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 shrink-0">
-          <div>
-             <h2 className="text-3xl font-black text-white flex items-center gap-3">
-               PROJETOS
-               {isLoading && <RefreshCw className="animate-spin text-gray-500" size={20} />}
-             </h2>
-             <p className="text-gray-500 mt-1">Gerencie seu fluxo de trabalho.</p>
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 shrink-0 bg-brand-dark/50 p-4 rounded-xl border border-white/5">
+          <div className="flex items-center gap-4">
+             <div>
+                <h2 className="text-3xl font-black text-white flex items-center gap-3">
+                  PROJETOS
+                </h2>
+                <div className="flex items-center gap-2 mt-1">
+                  <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold border ${isOnline ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'}`}>
+                    {isOnline ? <Wifi size={10} /> : <WifiOff size={10} />}
+                    {isOnline ? 'CONECTADO (SUPABASE)' : 'OFFLINE (LOCAL STORAGE)'}
+                  </div>
+                  {!isOnline && (
+                    <span className="text-xs text-gray-500 hidden sm:inline">
+                      Configure a chave na tela de login para ver o banco de dados.
+                    </span>
+                  )}
+                </div>
+             </div>
           </div>
-          <div className="flex gap-4">
+          
+          <div className="flex gap-3">
+             <button
+               onClick={() => setRefresh(prev => prev + 1)}
+               disabled={isLoading}
+               className="flex items-center justify-center p-2 bg-white/5 text-white hover:bg-white/10 rounded-lg transition-colors border border-white/10"
+               title="Atualizar Dados"
+             >
+               <RefreshCw size={20} className={isLoading ? "animate-spin" : ""} />
+             </button>
+             
              <button
                onClick={openNewProject}
                className="flex items-center gap-2 px-4 py-2 bg-white text-black font-bold rounded-lg hover:bg-gray-200 transition-colors shadow-lg"
              >
                <Plus size={18} />
-               Novo
+               <span className="hidden sm:inline">Novo Projeto</span>
              </button>
+             
              <button 
                onClick={onLogout} 
                className="text-sm text-red-400 hover:text-red-300 border border-red-900/50 px-4 py-2 rounded-lg hover:bg-red-900/10 transition-colors"

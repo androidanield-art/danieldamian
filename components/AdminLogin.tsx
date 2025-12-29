@@ -122,10 +122,11 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
             
             <div className="mt-4 pt-4 border-t border-white/10">
                <p className="text-[10px] text-gray-500">
-                 Dica: Execute este SQL no Supabase para garantir que a tabela existe:
+                 Dica: Copie e cole este código no SQL Editor do Supabase para criar a tabela com as permissões corretas:
                </p>
-               <pre className="mt-2 bg-black/50 p-2 rounded text-[10px] text-gray-400 overflow-x-auto">
-{`create table service_requests (
+               <pre className="mt-2 bg-black/50 p-2 rounded text-[10px] text-gray-400 overflow-x-auto custom-scrollbar select-all">
+{`-- 1. Cria a tabela
+create table if not exists service_requests (
   id text primary key,
   created_at bigint,
   client_name text,
@@ -136,7 +137,11 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
   tags text[],
   budget text,
   reference_file_name text
-);`}
+);
+
+-- 2. Libera acesso para o App
+alter table service_requests enable row level security;
+create policy "Public Access" on service_requests for all using (true) with check (true);`}
                </pre>
             </div>
           </div>
