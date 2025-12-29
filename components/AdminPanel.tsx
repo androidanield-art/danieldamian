@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ServiceRequest, RequestStatus, ServiceCategory } from '../types';
 import { getRequests, updateRequestStatus, deleteRequest, saveRequest, updateRequest } from '../services/dataService';
 import { isSupabaseConfigured } from '../services/supabaseClient';
-import { Clock, CheckCircle, PlayCircle, Trash2, Mail, FileText, Plus, X, Edit2, DollarSign, RefreshCw, Database, Wifi, WifiOff } from 'lucide-react';
+import { Clock, CheckCircle, PlayCircle, Trash2, Mail, FileText, Plus, X, Edit2, DollarSign, RefreshCw, Database, Wifi, WifiOff, Code, Monitor } from 'lucide-react';
 
 // --- COMPONENTS ---
 
@@ -363,6 +363,7 @@ export const AdminPanel: React.FC<{onLogout: () => void}> = ({onLogout}) => {
   const [refresh, setRefresh] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<ServiceRequest | null>(null);
+  const [showDebug, setShowDebug] = useState(false);
   const isOnline = isSupabaseConfigured();
 
   useEffect(() => {
@@ -433,6 +434,15 @@ export const AdminPanel: React.FC<{onLogout: () => void}> = ({onLogout}) => {
           
           <div className="flex gap-3">
              <button
+               onClick={() => setShowDebug(!showDebug)}
+               className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors border ${showDebug ? 'bg-blue-500/20 border-blue-500 text-blue-400' : 'bg-white/5 border-white/10 text-gray-400 hover:text-white'}`}
+               title="Ver JSON Bruto"
+             >
+               {showDebug ? <Monitor size={18} /> : <Code size={18} />}
+               <span className="hidden sm:inline">{showDebug ? 'Voltar ao Kanban' : 'Debug JSON'}</span>
+             </button>
+
+             <button
                onClick={() => setRefresh(prev => prev + 1)}
                disabled={isLoading}
                className="flex items-center justify-center p-2 bg-white/5 text-white hover:bg-white/10 rounded-lg transition-colors border border-white/10"
@@ -441,13 +451,15 @@ export const AdminPanel: React.FC<{onLogout: () => void}> = ({onLogout}) => {
                <RefreshCw size={20} className={isLoading ? "animate-spin" : ""} />
              </button>
              
-             <button
-               onClick={openNewProject}
-               className="flex items-center gap-2 px-4 py-2 bg-white text-black font-bold rounded-lg hover:bg-gray-200 transition-colors shadow-lg"
-             >
-               <Plus size={18} />
-               <span className="hidden sm:inline">Novo Projeto</span>
-             </button>
+             {!showDebug && (
+               <button
+                onClick={openNewProject}
+                className="flex items-center gap-2 px-4 py-2 bg-white text-black font-bold rounded-lg hover:bg-gray-200 transition-colors shadow-lg"
+              >
+                <Plus size={18} />
+                <span className="hidden sm:inline">Novo Projeto</span>
+              </button>
+             )}
              
              <button 
                onClick={onLogout} 
@@ -458,37 +470,58 @@ export const AdminPanel: React.FC<{onLogout: () => void}> = ({onLogout}) => {
           </div>
         </div>
 
-        <div className="flex-1 overflow-x-auto overflow-y-hidden pb-4">
-          <div className="flex gap-6 h-full items-start px-2">
-            <KanbanColumn 
-              title="Pendente / Novos" 
-              status={RequestStatus.PENDING}
-              requests={requests.filter(r => r.status === RequestStatus.PENDING)}
-              onStatusChange={handleStatusChange}
-              onDelete={handleDelete}
-              onEdit={openEditProject}
-              icon={<Clock size={16} className="text-yellow-500" />}
-            />
-            <KanbanColumn 
-              title="Em Produção" 
-              status={RequestStatus.IN_PROGRESS}
-              requests={requests.filter(r => r.status === RequestStatus.IN_PROGRESS)}
-              onStatusChange={handleStatusChange}
-              onDelete={handleDelete}
-              onEdit={openEditProject}
-              icon={<PlayCircle size={16} className="text-blue-500" />}
-            />
-            <KanbanColumn 
-              title="Finalizado" 
-              status={RequestStatus.COMPLETED}
-              requests={requests.filter(r => r.status === RequestStatus.COMPLETED)}
-              onStatusChange={handleStatusChange}
-              onDelete={handleDelete}
-              onEdit={openEditProject}
-              icon={<CheckCircle size={16} className="text-green-500" />}
-            />
+        {showDebug ? (
+          <div className="flex-1 overflow-auto p-4">
+             <div className="bg-[#0f0f0f] border border-white/10 rounded-xl p-6 shadow-2xl h-full flex flex-col">
+               <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-white font-bold flex items-center gap-2">
+                    <Database size={20} className="text-blue-500"/>
+                    Dados Brutos (DB Dump)
+                  </h3>
+                  <span className="text-xs text-gray-500">
+                    Mostrando dados da tabela: <strong>service_requests</strong>
+                  </span>
+               </div>
+               <div className="flex-1 relative">
+                 <pre className="absolute inset-0 font-mono text-xs text-green-400 whitespace-pre-wrap break-all bg-black p-4 rounded-lg border border-white/5 overflow-auto custom-scrollbar">
+                   {JSON.stringify(requests, null, 2)}
+                 </pre>
+               </div>
+             </div>
           </div>
-        </div>
+        ) : (
+          <div className="flex-1 overflow-x-auto overflow-y-hidden pb-4">
+            <div className="flex gap-6 h-full items-start px-2">
+              <KanbanColumn 
+                title="Pendente / Novos" 
+                status={RequestStatus.PENDING}
+                requests={requests.filter(r => r.status === RequestStatus.PENDING)}
+                onStatusChange={handleStatusChange}
+                onDelete={handleDelete}
+                onEdit={openEditProject}
+                icon={<Clock size={16} className="text-yellow-500" />}
+              />
+              <KanbanColumn 
+                title="Em Produção" 
+                status={RequestStatus.IN_PROGRESS}
+                requests={requests.filter(r => r.status === RequestStatus.IN_PROGRESS)}
+                onStatusChange={handleStatusChange}
+                onDelete={handleDelete}
+                onEdit={openEditProject}
+                icon={<PlayCircle size={16} className="text-blue-500" />}
+              />
+              <KanbanColumn 
+                title="Finalizado" 
+                status={RequestStatus.COMPLETED}
+                requests={requests.filter(r => r.status === RequestStatus.COMPLETED)}
+                onStatusChange={handleStatusChange}
+                onDelete={handleDelete}
+                onEdit={openEditProject}
+                icon={<CheckCircle size={16} className="text-green-500" />}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       <ProjectModal 

@@ -110,17 +110,17 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
 
             <p className="text-xs text-gray-400 mb-4 leading-relaxed">
               O projeto foi configurado com a URL: <br/>
-              <span className="text-blue-400">https://gckevbrutmpgeukrkdic.supabase.co</span>
+              <span className="text-blue-400">https://hakvrpgmieqhnvduppnh.supabase.co</span>
               <br/><br/>
-              Insira abaixo sua chave pública (ANON KEY) encontrada nas configurações de API do Supabase para habilitar a conexão.
+              A chave pública já foi inserida no código. Você pode testar a conexão diretamente ou sobrescrever com uma nova chave abaixo.
             </p>
 
             <form onSubmit={handleSaveKey} className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-gray-400 mb-1">Anon Public Key</label>
+                <label className="block text-xs font-medium text-gray-400 mb-1">Anon Public Key (Opcional)</label>
                 <input
                   type="password"
-                  placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  placeholder="Seu código já tem a chave, deixe em branco para usar a padrão"
                   className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-white text-sm focus:border-blue-500 outline-none"
                   value={apiKey}
                   onChange={e => setApiKey(e.target.value)}
@@ -140,7 +140,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
                   </Button>
                 )}
                 <Button type="submit" fullWidth className="flex-1 h-10 text-sm">
-                  Salvar e Conectar
+                  Salvar Nova Chave
                 </Button>
               </div>
             </form>
@@ -154,11 +154,10 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
             
             <div className="mt-4 pt-4 border-t border-white/10">
                <p className="text-[10px] text-gray-500">
-                 Dica: Copie e cole este código no SQL Editor do Supabase para criar a tabela com as permissões corretas:
+                 Cole este código no SQL Editor do Supabase se a tabela ainda não existir:
                </p>
                <pre className="mt-2 bg-black/50 p-2 rounded text-[10px] text-gray-400 overflow-x-auto custom-scrollbar select-all">
-{`-- 1. Cria a tabela
-create table if not exists service_requests (
+{`create table if not exists service_requests (
   id text primary key,
   created_at bigint,
   client_name text,
@@ -171,7 +170,6 @@ create table if not exists service_requests (
   reference_file_name text
 );
 
--- 2. Libera acesso para o App
 alter table service_requests enable row level security;
 create policy "Public Access" on service_requests for all using (true) with check (true);`}
                </pre>
