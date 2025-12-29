@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ServiceRequest, RequestStatus, ServiceCategory } from '../types';
 import { getRequests, updateRequestStatus, deleteRequest, saveRequest, updateRequest } from '../services/dataService';
-import { Clock, CheckCircle, PlayCircle, Trash2, Mail, FileText, Plus, X, Edit2, Tag, DollarSign } from 'lucide-react';
+import { Clock, CheckCircle, PlayCircle, Trash2, Mail, FileText, Plus, X, Edit2, DollarSign, RefreshCw } from 'lucide-react';
 
 // --- COMPONENTS ---
 
@@ -358,31 +358,38 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({ title, status, requests, on
 
 export const AdminPanel: React.FC<{onLogout: () => void}> = ({onLogout}) => {
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [refresh, setRefresh] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<ServiceRequest | null>(null);
 
   useEffect(() => {
-    setRequests(getRequests());
+    const load = async () => {
+      setIsLoading(true);
+      const data = await getRequests();
+      setRequests(data);
+      setIsLoading(false);
+    };
+    load();
   }, [refresh]);
 
-  const handleStatusChange = (id: string, newStatus: RequestStatus) => {
-    updateRequestStatus(id, newStatus);
+  const handleStatusChange = async (id: string, newStatus: RequestStatus) => {
+    await updateRequestStatus(id, newStatus);
     setRefresh(prev => prev + 1);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if(window.confirm("Tem certeza que deseja remover este projeto?")) {
-      deleteRequest(id);
+      await deleteRequest(id);
       setRefresh(prev => prev + 1);
     }
   };
 
-  const handleSaveProject = (request: ServiceRequest) => {
+  const handleSaveProject = async (request: ServiceRequest) => {
     if (editingProject) {
-      updateRequest(request);
+      await updateRequest(request);
     } else {
-      saveRequest(request);
+      await saveRequest(request);
     }
     setRefresh(prev => prev + 1);
     setEditingProject(null);
@@ -405,6 +412,7 @@ export const AdminPanel: React.FC<{onLogout: () => void}> = ({onLogout}) => {
           <div>
              <h2 className="text-3xl font-black text-white flex items-center gap-3">
                PROJETOS
+               {isLoading && <RefreshCw className="animate-spin text-gray-500" size={20} />}
              </h2>
              <p className="text-gray-500 mt-1">Gerencie seu fluxo de trabalho.</p>
           </div>

@@ -24,8 +24,8 @@ export const RequestForm: React.FC<RequestFormProps> = ({ initialService }) => {
     setStatus('submitting');
 
     try {
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Pequeno delay para feedback visual
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       const newRequest: ServiceRequest = {
         id: crypto.randomUUID(),
@@ -38,11 +38,9 @@ export const RequestForm: React.FC<RequestFormProps> = ({ initialService }) => {
         referenceFileName: formData.file?.name
       };
 
-      saveRequest(newRequest);
+      await saveRequest(newRequest);
       
-      // Simulate email notification locally since we don't have a backend
-      // In a real app, this would be handled by the server
-      console.info(`Sending notification to androidanield@gmail.com`);
+      console.info(`Enviando notificação para androidanield@gmail.com`);
       
       setStatus('success');
       setFormData({
