@@ -6,7 +6,6 @@ const TABLE_NAME = 'service_requests';
 
 // --- Helpers de Mapeamento (App <-> Banco de Dados) ---
 
-// Converte do banco (snake_case) para a aplicação (camelCase)
 const mapFromDb = (item: any): ServiceRequest => ({
   id: item.id,
   createdAt: Number(item.created_at),
@@ -20,7 +19,6 @@ const mapFromDb = (item: any): ServiceRequest => ({
   referenceFileName: item.reference_file_name
 });
 
-// Converte da aplicação para o banco
 const mapToDb = (req: ServiceRequest) => ({
   id: req.id,
   created_at: req.createdAt,
@@ -37,18 +35,22 @@ const mapToDb = (req: ServiceRequest) => ({
 // --- Funções de Dados ---
 
 export const getRequests = async (): Promise<ServiceRequest[]> => {
-  // Se Supabase estiver ativo, busca de lá
-  if (isSupabaseConfigured()) {
-    const { data, error } = await supabase!
-      .from(TABLE_NAME)
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (error) {
-      console.error("Erro Supabase:", error);
-      return [];
+  if (isSupabaseConfigured() && supabase) {
+    try {
+      const { data, error } = await supabase
+        .from(TABLE_NAME)
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error("SUPABASE ERROR (Get):", error.message, error.details);
+        // Não retorna vazio imediatamente, tenta o localStorage como backup visual
+      } else if (data) {
+        return data.map(mapFromDb);
+      }
+    } catch (err) {
+      console.error("SUPABASE CONNECTION ERROR:", err);
     }
-    return (data || []).map(mapFromDb);
   }
 
   // Fallback para LocalStorage
@@ -57,23 +59,24 @@ export const getRequests = async (): Promise<ServiceRequest[]> => {
 };
 
 export const saveRequest = async (request: ServiceRequest): Promise<void> => {
-  if (isSupabaseConfigured()) {
-    const { error } = await supabase!
+  if (isSupabaseConfigured() && supabase) {
+    const { error } = await supabase
       .from(TABLE_NAME)
       .insert([mapToDb(request)]);
       
-    if (error) console.error("Erro ao salvar no DB:", error);
+    if (error) console.error("SUPABASE ERROR (Insert):", error.message);
   }
   
-  // Mantém backup no LocalStorage
+  // Backup LocalStorage
   const requests = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
   const newRequests = [request, ...requests];
   localStorage.setItem(STORAGE_KEY, JSON.stringify(newRequests));
 };
 
 export const updateRequestStatus = async (id: string, newStatus: RequestStatus): Promise<void> => {
-  if (isSupabaseConfigured()) {
-    await supabase!.from(TABLE_NAME).update({ status: newStatus }).eq('id', id);
+  if (isSupabaseConfigured() && supabase) {
+    const { error } = await supabase.from(TABLE_NAME).update({ status: newStatus }).eq('id', id);
+    if (error) console.error("SUPABASE ERROR (Update Status):", error.message);
   }
 
   const requests = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
@@ -84,11 +87,12 @@ export const updateRequestStatus = async (id: string, newStatus: RequestStatus):
 };
 
 export const updateRequest = async (updatedRequest: ServiceRequest): Promise<void> => {
-  if (isSupabaseConfigured()) {
-    await supabase!
+  if (isSupabaseConfigured() && supabase) {
+    const { error } = await supabase
       .from(TABLE_NAME)
       .update(mapToDb(updatedRequest))
       .eq('id', updatedRequest.id);
+    if (error) console.error("SUPABASE ERROR (Update All):", error.message);
   }
 
   const requests = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
@@ -100,8 +104,9 @@ export const updateRequest = async (updatedRequest: ServiceRequest): Promise<voi
 };
 
 export const deleteRequest = async (id: string): Promise<void> => {
-  if (isSupabaseConfigured()) {
-    await supabase!.from(TABLE_NAME).delete().eq('id', id);
+  if (isSupabaseConfigured() && supabase) {
+    const { error } = await supabase.from(TABLE_NAME).delete().eq('id', id);
+    if (error) console.error("SUPABASE ERROR (Delete):", error.message);
   }
 
   const requests = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');

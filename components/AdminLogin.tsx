@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from './Button';
-import { Lock, Settings, X, Database } from 'lucide-react';
-import { saveSupabaseKey, isSupabaseConfigured } from '../services/supabaseClient';
+import { Lock, Settings, X, Database, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { saveSupabaseKey, isSupabaseConfigured, testConnection } from '../services/supabaseClient';
 
 interface AdminLoginProps {
   onLoginSuccess: () => void;
@@ -13,6 +13,10 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
   const [error, setError] = useState('');
   const [showConfig, setShowConfig] = useState(false);
   const [apiKey, setApiKey] = useState('');
+  
+  // Estados para o teste
+  const [testStatus, setTestStatus] = useState<{success: boolean; message: string} | null>(null);
+  const [isTesting, setIsTesting] = useState(false);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,6 +33,14 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
     if (apiKey.trim()) {
       saveSupabaseKey(apiKey.trim());
     }
+  };
+
+  const runConnectionTest = async () => {
+    setIsTesting(true);
+    setTestStatus(null);
+    const result = await testConnection();
+    setTestStatus(result);
+    setIsTesting(false);
   };
 
   return (
@@ -115,10 +127,30 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
                 />
               </div>
               
-              <Button type="submit" fullWidth className="h-10 text-sm">
-                Salvar e Conectar
-              </Button>
+              <div className="flex gap-2">
+                {isSupabaseConfigured() && (
+                   <Button 
+                    type="button" 
+                    variant="outline" 
+                    className="flex-1 h-10 text-xs"
+                    onClick={runConnectionTest}
+                    disabled={isTesting}
+                  >
+                    {isTesting ? <Loader2 className="animate-spin w-4 h-4" /> : 'Testar Conexão'}
+                  </Button>
+                )}
+                <Button type="submit" fullWidth className="flex-1 h-10 text-sm">
+                  Salvar e Conectar
+                </Button>
+              </div>
             </form>
+
+            {testStatus && (
+              <div className={`mt-4 p-3 rounded border text-xs flex items-start gap-2 ${testStatus.success ? 'bg-green-500/10 border-green-500/20 text-green-400' : 'bg-red-500/10 border-red-500/20 text-red-400'}`}>
+                {testStatus.success ? <CheckCircle size={14} className="mt-0.5 shrink-0" /> : <AlertCircle size={14} className="mt-0.5 shrink-0" />}
+                <span>{testStatus.message}</span>
+              </div>
+            )}
             
             <div className="mt-4 pt-4 border-t border-white/10">
                <p className="text-[10px] text-gray-500">
