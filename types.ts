@@ -4,7 +4,8 @@ export enum ServiceCategory {
   GRAPHIC_MATERIALS = "Materiais Gráficos",
   WEB_DESIGN = "Sites e Páginas Web",
   SOCIAL_MEDIA = "Gestão de Redes Sociais",
-  CREATIVE_PACKS = "Pacotes de Criativos"
+  CREATIVE_PACKS = "Pacotes de Criativos",
+  OTHERS = "Outros / Projetos Especiais"
 }
 
 export enum RequestStatus {
