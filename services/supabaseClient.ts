@@ -1,16 +1,20 @@
 import { createClient } from '@supabase/supabase-js';
 
-// --- CONFIGURAÇÃO FORÇADA ---
-// Estamos usando diretamente as chaves que você forneceu para garantir a conexão.
-const SUPABASE_URL = 'https://hakvrpgmieqhnvduppnh.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhha3ZycGdtaWVxaG52ZHVwcG5oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwMDgxNjksImV4cCI6MjA4MjU4NDE2OX0.YMdU8Vw8Cb25ms_XQLwLEb-lmIC6_lFj9WuEnNxGUuE';
+// --- CONFIGURAÇÃO DE AMBIENTE (VERCEL) ---
+// Tenta pegar das variáveis de ambiente da Vercel primeiro.
+// Se não encontrar, usa as chaves hardcoded como fallback para garantir que o app funcione.
 
-// Cria o cliente diretamente, sem verificações complexas
+const env = (import.meta as any).env || {};
+
+const SUPABASE_URL = env.VITE_SUPABASE_URL || 'https://hakvrpgmieqhnvduppnh.supabase.co';
+const SUPABASE_KEY = env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhha3ZycGdtaWVxaG52ZHVwcG5oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwMDgxNjksImV4cCI6MjA4MjU4NDE2OX0.YMdU8Vw8Cb25ms_XQLwLEb-lmIC6_lFj9WuEnNxGUuE';
+
+// Cria o cliente
 export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // Função simples para confirmar que existe configuração
 export const isSupabaseConfigured = () => {
-  return true; 
+  return !!SUPABASE_URL && !!SUPABASE_KEY; 
 };
 
 // Função de teste de conexão direta
@@ -25,7 +29,7 @@ export const testConnection = async () => {
       console.error("Erro Supabase:", error);
       // Erro 404 ou relação não existe significa que conectou, mas falta a tabela
       if (error.code === '42P01' || error.message.includes('does not exist')) {
-         return { success: false, message: 'Conectado ao Projeto! Porém a tabela "service_requests" não existe. Crie a tabela no SQL Editor.' };
+         return { success: false, message: 'Conectado ao Projeto! Porém a tabela "service_requests" não existe. Crie a tabela no SQL Editor ou use o CSV.' };
       }
       return { success: false, message: `Erro de Permissão ou Banco: ${error.message}` };
     }
@@ -36,9 +40,7 @@ export const testConnection = async () => {
   }
 };
 
-// Mantemos a função apenas para compatibilidade, mas ela não altera mais a conexão principal
 export const saveSupabaseKey = (newKey: string) => {
-  console.log("Chave salva, mas o sistema está forçando o uso da chave hardcoded para garantir funcionamento.");
   localStorage.setItem('dnldm_sb_key', newKey);
   window.location.reload();
 };
