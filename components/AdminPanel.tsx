@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ServiceRequest, RequestStatus, ServiceCategory } from '../types';
 import { getRequests, updateRequestStatus, deleteRequest, saveRequest, updateRequest } from '../services/dataService';
 import { isSupabaseConfigured } from '../services/supabaseClient';
-import { Clock, CheckCircle, PlayCircle, Trash2, Mail, FileText, Plus, X, Edit2, DollarSign, RefreshCw, Database, Wifi, WifiOff, Code, Monitor } from 'lucide-react';
+import { Clock, CheckCircle, PlayCircle, Trash2, Mail, FileText, Plus, X, Edit2, DollarSign, RefreshCw, Database, Wifi, WifiOff, Code, Monitor, Download } from 'lucide-react';
 
 // --- COMPONENTS ---
 
@@ -408,6 +408,41 @@ export const AdminPanel: React.FC<{onLogout: () => void}> = ({onLogout}) => {
     setIsModalOpen(true);
   };
 
+  const handleExportCSV = () => {
+    const headers = ['ID', 'Data', 'Cliente', 'Email', 'Serviço', 'Status', 'Orçamento', 'Descrição', 'Tags', 'Arquivo'];
+    
+    const csvContent = requests.map(req => {
+      const date = new Date(req.createdAt).toLocaleDateString();
+      const cleanDesc = (req.description || '').replace(/"/g, '""').replace(/\n/g, ' ');
+      const cleanName = (req.clientName || '').replace(/"/g, '""');
+      const tags = (req.tags || []).join('; ');
+      
+      return [
+        req.id,
+        date,
+        `"${cleanName}"`,
+        `"${req.clientEmail || ''}"`,
+        `"${req.serviceType}"`,
+        `"${req.status}"`,
+        `"${req.budget || ''}"`,
+        `"${cleanDesc}"`,
+        `"${tags}"`,
+        `"${req.referenceFileName || ''}"`
+      ].join(',');
+    });
+
+    const csvString = [headers.join(','), ...csvContent].join('\n');
+    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `daniel_damian_projetos_${new Date().toISOString().slice(0,10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="min-h-screen bg-brand-black pt-24 pb-4 px-4 sm:px-6 lg:px-8 flex flex-col">
       <div className="max-w-[1920px] mx-auto w-full h-full flex flex-col flex-1">
@@ -440,6 +475,14 @@ export const AdminPanel: React.FC<{onLogout: () => void}> = ({onLogout}) => {
              >
                {showDebug ? <Monitor size={18} /> : <Code size={18} />}
                <span className="hidden sm:inline">{showDebug ? 'Voltar ao Kanban' : 'Debug JSON'}</span>
+             </button>
+
+             <button
+               onClick={handleExportCSV}
+               className="flex items-center justify-center p-2 bg-white/5 text-white hover:bg-white/10 rounded-lg transition-colors border border-white/10"
+               title="Exportar CSV"
+             >
+               <Download size={20} />
              </button>
 
              <button

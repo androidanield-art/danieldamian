@@ -1,5 +1,5 @@
 import { ServiceRequest, RequestStatus } from '../types';
-import { supabase, isSupabaseConfigured } from './supabaseClient';
+import { supabase } from './supabaseClient';
 
 const STORAGE_KEY = 'dnldm_requests';
 const TABLE_NAME = 'service_requests';
@@ -35,50 +35,56 @@ const mapToDb = (req: ServiceRequest) => ({
 // --- Funções de Dados ---
 
 export const getRequests = async (): Promise<ServiceRequest[]> => {
-  if (isSupabaseConfigured() && supabase) {
-    try {
-      const { data, error } = await supabase
-        .from(TABLE_NAME)
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      if (error) {
-        console.error("SUPABASE ERROR (Get):", error.message, error.details);
-        // Não retorna vazio imediatamente, tenta o localStorage como backup visual
-      } else if (data) {
-        return data.map(mapFromDb);
-      }
-    } catch (err) {
-      console.error("SUPABASE CONNECTION ERROR:", err);
+  // TENTA PRIMEIRO O SUPABASE
+  try {
+    const { data, error } = await supabase
+      .from(TABLE_NAME)
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error("ERRO AO BUSCAR NO SUPABASE:", error.message);
+      // Se a tabela não existir, retorna array vazio em vez de crashar
+      if (error.code === '42P01') return [];
+    } else if (data) {
+      console.log("DADOS RECEBIDOS DO SUPABASE:", data);
+      return data.map(mapFromDb);
     }
+  } catch (err) {
+    console.error("ERRO DE CONEXÃO CRÍTICO:", err);
   }
 
-  // Fallback para LocalStorage
+  // Se falhar o Supabase (ou retornar vazio/erro), tenta o LocalStorage como último recurso
+  console.warn("Usando fallback local storage");
   const stored = localStorage.getItem(STORAGE_KEY);
   return stored ? JSON.parse(stored) : [];
 };
 
 export const saveRequest = async (request: ServiceRequest): Promise<void> => {
-  if (isSupabaseConfigured() && supabase) {
-    const { error } = await supabase
-      .from(TABLE_NAME)
-      .insert([mapToDb(request)]);
-      
-    if (error) console.error("SUPABASE ERROR (Insert):", error.message);
+  // Salva no Supabase
+  const { error } = await supabase
+    .from(TABLE_NAME)
+    .insert([mapToDb(request)]);
+    
+  if (error) {
+    console.error("ERRO AO SALVAR NO SUPABASE:", error.message);
+    alert(`Erro ao salvar no banco: ${error.message}`);
+  } else {
+    console.log("Salvo no Supabase com sucesso");
   }
   
-  // Backup LocalStorage
+  // Backup LocalStorage (para garantir experiência do usuário)
   const requests = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
   const newRequests = [request, ...requests];
   localStorage.setItem(STORAGE_KEY, JSON.stringify(newRequests));
 };
 
 export const updateRequestStatus = async (id: string, newStatus: RequestStatus): Promise<void> => {
-  if (isSupabaseConfigured() && supabase) {
-    const { error } = await supabase.from(TABLE_NAME).update({ status: newStatus }).eq('id', id);
-    if (error) console.error("SUPABASE ERROR (Update Status):", error.message);
-  }
+  const { error } = await supabase.from(TABLE_NAME).update({ status: newStatus }).eq('id', id);
+  
+  if (error) console.error("ERRO AO ATUALIZAR STATUS:", error.message);
 
+  // Atualiza localmente
   const requests = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
   const updatedRequests = requests.map((req: ServiceRequest) => 
     req.id === id ? { ...req, status: newStatus } : req
@@ -87,14 +93,14 @@ export const updateRequestStatus = async (id: string, newStatus: RequestStatus):
 };
 
 export const updateRequest = async (updatedRequest: ServiceRequest): Promise<void> => {
-  if (isSupabaseConfigured() && supabase) {
-    const { error } = await supabase
-      .from(TABLE_NAME)
-      .update(mapToDb(updatedRequest))
-      .eq('id', updatedRequest.id);
-    if (error) console.error("SUPABASE ERROR (Update All):", error.message);
-  }
+  const { error } = await supabase
+    .from(TABLE_NAME)
+    .update(mapToDb(updatedRequest))
+    .eq('id', updatedRequest.id);
+    
+  if (error) console.error("ERRO AO ATUALIZAR TUDO:", error.message);
 
+  // Atualiza localmente
   const requests = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
   const index = requests.findIndex((req: ServiceRequest) => req.id === updatedRequest.id);
   if (index !== -1) {
@@ -104,11 +110,11 @@ export const updateRequest = async (updatedRequest: ServiceRequest): Promise<voi
 };
 
 export const deleteRequest = async (id: string): Promise<void> => {
-  if (isSupabaseConfigured() && supabase) {
-    const { error } = await supabase.from(TABLE_NAME).delete().eq('id', id);
-    if (error) console.error("SUPABASE ERROR (Delete):", error.message);
-  }
+  const { error } = await supabase.from(TABLE_NAME).delete().eq('id', id);
+  
+  if (error) console.error("ERRO AO DELETAR:", error.message);
 
+  // Deleta localmente
   const requests = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
   const updatedRequests = requests.filter((req: ServiceRequest) => req.id !== id);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedRequests));
