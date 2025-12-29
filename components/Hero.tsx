@@ -36,7 +36,7 @@ export const Hero: React.FC<HeroProps> = ({ onCtaClick }) => {
             onClick={onCtaClick}
             className="px-8 py-4 bg-white text-black font-bold text-lg hover:bg-gray-200 transition-all w-full sm:w-auto"
           >
-            Iniciar Projeto
+            Solicitar Orçamento
           </button>
           <a 
             href="#portfolio"

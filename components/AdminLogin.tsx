@@ -58,17 +58,21 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
       'reference_file_name'
     ];
 
-    // Linha de exemplo para ajudar o Supabase a detectar os tipos de dados (texto, número, array)
-    // Importante: tags está entre aspas e chaves "{}" para simular array do Postgres
+    // Formato de Data Compatível com Supabase (YYYY-MM-DD HH:mm:ss)
+    const now = new Date();
+    const dateStr = now.toISOString().replace('T', ' ').substring(0, 19);
+
+    // Linha de exemplo
+    // NOTA: Para arrays no CSV do Supabase, usamos formato Postgres {item1,item2} entre aspas duplas
     const dummyRow = [
-      'exemplo_id_123',
-      '1709232000000',
+      `req_${crypto.randomUUID().slice(0,8)}`, // ID único
+      dateStr, // Data em formato SQL Timestamp
       'Cliente Exemplo',
       'cliente@email.com',
       'Custom Wear',
-      'Descrição do projeto exemplo',
+      'Descrição do projeto exemplo para teste de importação.',
       'Pendente',
-      '"{Pendente de Orçamento}"',
+      '"{Pendente de Orçamento}"', // Array formatado para Postgres
       '1500,00',
       'referencia.jpg'
     ];
@@ -78,7 +82,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = 'modelo_criar_tabela_supabase.csv';
+    link.download = 'modelo_importacao_supabase.csv';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -201,7 +205,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
                </h4>
                
                <p className="text-[10px] text-gray-500 mb-3">
-                 Escolha como deseja criar a tabela <strong>service_requests</strong> no Supabase:
+                 Se o comando SQL falhar, use o arquivo abaixo na opção <strong>"Upload CSV"</strong> do Supabase.
                </p>
 
                <div className="grid grid-cols-2 gap-3 mb-4">
@@ -210,31 +214,13 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
                     className="flex flex-col items-center justify-center p-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-colors group"
                   >
                     <Download className="w-5 h-5 text-gray-400 group-hover:text-white mb-1" />
-                    <span className="text-[10px] text-gray-300 font-medium">Baixar CSV</span>
-                    <span className="text-[9px] text-gray-500">Para "Import Data"</span>
+                    <span className="text-[10px] text-gray-300 font-medium">Baixar Modelo CSV</span>
+                    <span className="text-[9px] text-gray-500">Compatível com Import</span>
                   </button>
                   <div className="flex items-center justify-center p-3 bg-black/40 border border-white/5 rounded-lg">
-                    <span className="text-[10px] text-gray-500 text-center">Ou copie o SQL abaixo para o "SQL Editor"</span>
+                    <span className="text-[10px] text-gray-500 text-center">Use este arquivo para criar a tabela automaticamente</span>
                   </div>
                </div>
-
-               <pre className="bg-black/50 p-2 rounded text-[9px] text-gray-400 overflow-x-auto custom-scrollbar select-all border border-white/5">
-{`create table if not exists service_requests (
-  id text primary key,
-  created_at bigint,
-  client_name text,
-  client_email text,
-  service_type text,
-  description text,
-  status text,
-  tags text[],
-  budget text,
-  reference_file_name text
-);
-
-alter table service_requests enable row level security;
-create policy "Public Access" on service_requests for all using (true) with check (true);`}
-               </pre>
             </div>
           </div>
         </div>

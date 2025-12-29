@@ -409,13 +409,30 @@ export const AdminPanel: React.FC<{onLogout: () => void}> = ({onLogout}) => {
   };
 
   const handleExportCSV = () => {
-    const headers = ['ID', 'Data', 'Cliente', 'Email', 'Serviço', 'Status', 'Orçamento', 'Descrição', 'Tags', 'Arquivo'];
+    // Cabeçalhos em snake_case para compatibilidade direta com Supabase
+    const headers = [
+      'id', 
+      'created_at', 
+      'client_name', 
+      'client_email', 
+      'service_type', 
+      'status', 
+      'budget', 
+      'description', 
+      'tags', 
+      'reference_file_name'
+    ];
     
     const csvContent = requests.map(req => {
-      const date = new Date(req.createdAt).toLocaleDateString();
+      // Data em formato ISO para o banco de dados
+      const date = new Date(req.createdAt).toISOString().replace('T', ' ').substring(0, 19);
+      
       const cleanDesc = (req.description || '').replace(/"/g, '""').replace(/\n/g, ' ');
       const cleanName = (req.clientName || '').replace(/"/g, '""');
-      const tags = (req.tags || []).join('; ');
+      
+      // Formato de array Postgres: "{item1,item2}"
+      const tagsArray = req.tags || [];
+      const tagsFormatted = `"{${tagsArray.join(',')}}"`;
       
       return [
         req.id,
@@ -426,7 +443,7 @@ export const AdminPanel: React.FC<{onLogout: () => void}> = ({onLogout}) => {
         `"${req.status}"`,
         `"${req.budget || ''}"`,
         `"${cleanDesc}"`,
-        `"${tags}"`,
+        `"${tagsFormatted}"`, // Aspas extras para garantir que o CSV não quebre nas vírgulas internas
         `"${req.referenceFileName || ''}"`
       ].join(',');
     });
@@ -436,7 +453,8 @@ export const AdminPanel: React.FC<{onLogout: () => void}> = ({onLogout}) => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `daniel_damian_projetos_${new Date().toISOString().slice(0,10)}.csv`;
+    // Nome do arquivo amigável, mas conteúdo técnico
+    link.download = `backup_supabase_${new Date().toISOString().slice(0,10)}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -480,7 +498,7 @@ export const AdminPanel: React.FC<{onLogout: () => void}> = ({onLogout}) => {
              <button
                onClick={handleExportCSV}
                className="flex items-center justify-center p-2 bg-white/5 text-white hover:bg-white/10 rounded-lg transition-colors border border-white/10"
-               title="Exportar CSV"
+               title="Exportar Backup CSV (Compatível Supabase)"
              >
                <Download size={20} />
              </button>

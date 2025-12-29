@@ -6,9 +6,18 @@ const TABLE_NAME = 'service_requests';
 
 // --- Helpers de Mapeamento (App <-> Banco de Dados) ---
 
+const parseDate = (dateVal: any): number => {
+  if (!dateVal) return Date.now();
+  // Se for número (timestamp epoch vindo do LocalStorage ou BigInt do banco)
+  if (!isNaN(Number(dateVal))) return Number(dateVal);
+  // Se for string ISO (timestamp vindo do Supabase via CSV Import)
+  const timestamp = new Date(dateVal).getTime();
+  return isNaN(timestamp) ? Date.now() : timestamp;
+};
+
 const mapFromDb = (item: any): ServiceRequest => ({
   id: item.id,
-  createdAt: Number(item.created_at),
+  createdAt: parseDate(item.created_at),
   clientName: item.client_name,
   clientEmail: item.client_email,
   serviceType: item.service_type,
@@ -21,7 +30,7 @@ const mapFromDb = (item: any): ServiceRequest => ({
 
 const mapToDb = (req: ServiceRequest) => ({
   id: req.id,
-  created_at: req.createdAt,
+  created_at: req.createdAt, // Supabase aceita int8 ou timestamp ISO
   client_name: req.clientName,
   client_email: req.clientEmail,
   service_type: req.serviceType,
