@@ -95,9 +95,8 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, onSave, in
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">Email</label>
+              <label className="block text-sm font-medium text-gray-400 mb-2">Email (Opcional)</label>
               <input
-                required
                 type="email"
                 className="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-white transition-colors"
                 value={formData.clientEmail}
@@ -229,16 +228,18 @@ interface KanbanColumnProps {
 
 const KanbanColumn: React.FC<KanbanColumnProps> = ({ title, status, requests, onStatusChange, onDelete, onEdit, icon }) => {
   return (
-    <div className="flex-1 min-w-[320px] bg-brand-dark/50 border border-white/5 flex flex-col h-full rounded-xl overflow-hidden shadow-sm">
-      <div className="p-4 border-b border-white/5 flex items-center gap-2 bg-brand-dark sticky top-0 z-10">
-        {icon}
-        <h3 className="font-bold text-white uppercase tracking-wider text-sm">{title}</h3>
-        <span className="ml-auto bg-white/10 text-xs px-2 py-1 rounded-full font-mono">{requests.length}</span>
+    <div className="flex flex-col w-[350px] shrink-0 max-h-full bg-[#161616] border border-[#262626] rounded-xl shadow-lg">
+      <div className="p-4 border-b border-[#262626] flex items-center gap-3 bg-[#161616] rounded-t-xl sticky top-0 z-10">
+        <div className="p-1.5 bg-[#262626] rounded-md text-white">
+           {icon}
+        </div>
+        <h3 className="font-bold text-white text-sm">{title}</h3>
+        <span className="ml-auto bg-[#262626] text-gray-400 text-xs px-2.5 py-1 rounded-full font-bold">{requests.length}</span>
       </div>
       
-      <div className="p-3 space-y-3 overflow-y-auto flex-1 custom-scrollbar bg-black/20">
+      <div className="p-3 space-y-3 overflow-y-auto flex-1 custom-scrollbar">
         {requests.map(req => (
-          <div key={req.id} className="bg-brand-gray/40 border border-white/5 p-4 rounded-lg hover:border-white/20 transition-all group relative">
+          <div key={req.id} className="bg-[#262626] p-4 rounded-lg shadow-sm border border-transparent hover:border-gray-600 transition-all group relative">
             <div className="flex justify-between items-start mb-2">
               <span className="text-[10px] text-gray-500 font-mono uppercase tracking-widest">
                 {new Date(req.createdAt).toLocaleDateString()}
@@ -246,7 +247,7 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({ title, status, requests, on
               <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button 
                   onClick={() => onEdit(req)}
-                  className="p-1.5 text-gray-400 hover:text-white hover:bg-white/10 rounded transition-colors"
+                  className="p-1.5 text-gray-400 hover:text-white hover:bg-[#333] rounded transition-colors"
                   title="Editar"
                 >
                   <Edit2 size={14} />
@@ -264,18 +265,20 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({ title, status, requests, on
             <h4 className="font-bold text-white mb-1 leading-tight">{req.serviceType}</h4>
             <div className="text-sm font-medium text-gray-300 mb-2">{req.clientName}</div>
             
-            <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-3">
-              <Mail size={12} />
-              <span className="truncate">{req.clientEmail}</span>
-            </div>
+            {req.clientEmail && (
+              <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-3">
+                <Mail size={12} />
+                <span className="truncate">{req.clientEmail}</span>
+              </div>
+            )}
             
             {req.tags && req.tags.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mb-3">
                 {req.tags.map(tag => {
-                  let colorClass = "bg-white/5 text-gray-400 border-white/5";
-                  if (tag.includes("Pendente")) colorClass = "bg-yellow-500/10 text-yellow-500 border-yellow-500/20";
-                  else if (tag.includes("Enviado")) colorClass = "bg-blue-500/10 text-blue-400 border-blue-500/20";
-                  else if (tag.includes("Aprovado")) colorClass = "bg-green-500/10 text-green-400 border-green-500/20";
+                  let colorClass = "bg-[#333] text-gray-400 border-[#444]";
+                  if (tag.includes("Pendente")) colorClass = "bg-yellow-900/20 text-yellow-500 border-yellow-900/40";
+                  else if (tag.includes("Enviado")) colorClass = "bg-blue-900/20 text-blue-400 border-blue-900/40";
+                  else if (tag.includes("Aprovado")) colorClass = "bg-green-900/20 text-green-400 border-green-900/40";
                   
                   return (
                     <span key={tag} className={`px-2 py-0.5 text-[10px] border rounded ${colorClass}`}>
@@ -287,7 +290,7 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({ title, status, requests, on
             )}
             
             <div className="relative">
-              <p className="text-gray-500 text-xs mb-3 line-clamp-2 leading-relaxed">
+              <p className="text-gray-400 text-xs mb-3 line-clamp-2 leading-relaxed">
                 {req.description}
               </p>
             </div>
@@ -299,11 +302,11 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({ title, status, requests, on
               </div>
             )}
 
-            <div className="flex justify-between gap-2 mt-auto pt-3 border-t border-white/5">
+            <div className="flex justify-between gap-2 mt-auto pt-3 border-t border-[#333]">
               {status !== RequestStatus.PENDING ? (
                 <button 
                   onClick={() => onStatusChange(req.id, status === RequestStatus.COMPLETED ? RequestStatus.IN_PROGRESS : RequestStatus.PENDING)}
-                  className="text-[10px] px-2 py-1 border border-white/10 hover:bg-white/5 text-gray-400 rounded transition-colors"
+                  className="text-[10px] px-2 py-1 border border-[#444] hover:bg-[#333] text-gray-400 rounded transition-colors"
                 >
                   &larr; Voltar
                 </button>
@@ -370,23 +373,22 @@ export const AdminPanel: React.FC<{onLogout: () => void}> = ({onLogout}) => {
   };
 
   return (
-    <div className="min-h-screen bg-brand-black pt-24 pb-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-[1600px] mx-auto h-[calc(100vh-8rem)] flex flex-col">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+    <div className="min-h-screen bg-brand-black pt-24 pb-4 px-4 sm:px-6 lg:px-8 flex flex-col">
+      <div className="max-w-[1920px] mx-auto w-full h-full flex flex-col flex-1">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 shrink-0">
           <div>
              <h2 className="text-3xl font-black text-white flex items-center gap-3">
-               ADMIN DASHBOARD
-               <span className="text-xs font-normal text-gray-500 border border-gray-800 px-2 py-1 rounded-full">v2.0</span>
+               PROJETOS
              </h2>
-             <p className="text-gray-500 mt-1">Gerencie projetos, status e orçamentos.</p>
+             <p className="text-gray-500 mt-1">Gerencie seu fluxo de trabalho.</p>
           </div>
           <div className="flex gap-4">
              <button
                onClick={openNewProject}
-               className="flex items-center gap-2 px-4 py-2 bg-white text-black font-bold rounded-lg hover:bg-gray-200 transition-colors"
+               className="flex items-center gap-2 px-4 py-2 bg-white text-black font-bold rounded-lg hover:bg-gray-200 transition-colors shadow-lg"
              >
                <Plus size={18} />
-               Novo Projeto
+               Novo
              </button>
              <button 
                onClick={onLogout} 
@@ -397,8 +399,8 @@ export const AdminPanel: React.FC<{onLogout: () => void}> = ({onLogout}) => {
           </div>
         </div>
 
-        <div className="flex-1 overflow-x-auto overflow-y-hidden pb-2">
-          <div className="flex gap-6 h-full min-w-[1000px]">
+        <div className="flex-1 overflow-x-auto overflow-y-hidden pb-4">
+          <div className="flex gap-6 h-full items-start px-2">
             <KanbanColumn 
               title="Pendente / Novos" 
               status={RequestStatus.PENDING}
