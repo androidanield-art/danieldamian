@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ServiceRequest, RequestStatus, ServiceCategory } from '../types';
 import { getRequests, updateRequestStatus, deleteRequest, saveRequest, updateRequest } from '../services/dataService';
-import { Clock, CheckCircle, PlayCircle, Trash2, Mail, FileText, Plus, X, Edit2, Tag } from 'lucide-react';
+import { Clock, CheckCircle, PlayCircle, Trash2, Mail, FileText, Plus, X, Edit2, Tag, DollarSign } from 'lucide-react';
 
 // --- COMPONENTS ---
 
@@ -19,7 +19,8 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, onSave, in
     serviceType: ServiceCategory.CUSTOM_WEAR,
     description: '',
     status: RequestStatus.PENDING,
-    tags: []
+    tags: [],
+    budget: ''
   });
 
   useEffect(() => {
@@ -32,7 +33,8 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, onSave, in
         serviceType: ServiceCategory.CUSTOM_WEAR,
         description: '',
         status: RequestStatus.PENDING,
-        tags: []
+        tags: [],
+        budget: ''
       });
     }
   }, [initialData, isOpen]);
@@ -50,7 +52,8 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, onSave, in
       description: formData.description || '',
       status: formData.status as RequestStatus,
       tags: formData.tags || [],
-      referenceFileName: initialData?.referenceFileName
+      referenceFileName: initialData?.referenceFileName,
+      budget: formData.budget || ''
     };
     onSave(request);
     onClose();
@@ -130,6 +133,22 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, onSave, in
                 ))}
               </select>
             </div>
+          </div>
+
+          <div>
+             <label className="block text-sm font-medium text-gray-400 mb-2">Valor do Orçamento</label>
+             <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <span className="text-gray-500 text-sm">R$</span>
+                </div>
+                <input
+                  type="text"
+                  placeholder="0,00"
+                  className="w-full bg-black/50 border border-white/10 rounded-lg pl-10 pr-4 py-2 text-white focus:outline-none focus:border-white transition-colors"
+                  value={formData.budget || ''}
+                  onChange={e => setFormData({...formData, budget: e.target.value})}
+                />
+             </div>
           </div>
 
           <div>
@@ -272,6 +291,13 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({ title, status, requests, on
               </div>
             )}
             
+            {req.budget && (
+               <div className="flex items-center gap-1.5 text-sm font-bold text-emerald-400 mb-3 bg-emerald-400/5 p-2 rounded border border-emerald-400/10">
+                 <DollarSign size={14} />
+                 <span>R$ {req.budget}</span>
+               </div>
+            )}
+
             {req.tags && req.tags.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mb-3">
                 {req.tags.map(tag => {

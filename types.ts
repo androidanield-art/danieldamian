@@ -24,6 +24,7 @@ export interface ServiceRequest {
   createdAt: number;
   status: RequestStatus;
   tags?: string[];
+  budget?: string;
 }
 
 export interface AdminUser {
