@@ -4,15 +4,15 @@ import { createClient } from '@supabase/supabase-js';
 // O sistema busca as chaves nesta ordem:
 // 1. Variáveis de ambiente (Vercel/Build)
 // 2. LocalStorage (Configurado via Painel Admin)
-// 3. Fallback (Strings vazias - aguardando configuração)
+// 3. Fallback (Strings fixas no código)
 
 const env = (import.meta as any).env || {};
 const localKey = localStorage.getItem('dnldm_sb_key');
 const localUrl = localStorage.getItem('dnldm_sb_url');
 
-// PREENCHA AQUI SE QUISER FIXAR NO CÓDIGO (Não recomendado para repositórios públicos)
-const FALLBACK_URL = ''; 
-const FALLBACK_KEY = '';
+// Configuração fixa fornecida pelo usuário
+const FALLBACK_URL = 'https://hakvrpgmieqhnvduppnh.supabase.co'; 
+const FALLBACK_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhha3ZycGdtaWVxaG52ZHVwcG5oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwMDgxNjksImV4cCI6MjA4MjU4NDE2OX0.YMdU8Vw8Cb25ms_XQLwLEb-lmIC6_lFj9WuEnNxGUuE';
 
 const SUPABASE_URL = env.VITE_SUPABASE_URL || localUrl || FALLBACK_URL;
 const SUPABASE_KEY = env.VITE_SUPABASE_ANON_KEY || localKey || FALLBACK_KEY;
@@ -50,7 +50,7 @@ export const testConnection = async () => {
       console.error("Erro Supabase:", error);
       // Erro 404 ou 42P01 significa que conectou, mas a tabela não existe
       if (error.code === '42P01' || error.message.includes('does not exist')) {
-         return { success: false, message: 'Conectado! Porém a tabela "service_requests" não existe. Use o comando SQL disponível abaixo.' };
+         return { success: false, message: 'Conectado! Porém a tabela "service_requests" não existe. Use o comando SQL disponível no botão abaixo.' };
       }
       return { success: false, message: `Erro de Permissão ou Conexão: ${error.message}` };
     }
