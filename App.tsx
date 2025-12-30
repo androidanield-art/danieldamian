@@ -113,7 +113,7 @@ const App: React.FC = () => {
           <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
             <div>
                <h2 className="text-xl font-bold">DANIEL<span className="text-gray-600">DAMIAN</span></h2>
-               <p className="text-xs text-gray-500 mt-2">&copy; {new Date().getFullYear()} All rights reserved.</p>
+               <p className="text-xs text-gray-500 mt-2">&copy; {new Date().getFullYear()} Todos os direitos reservados.</p>
             </div>
             <div className="flex gap-6">
                <a href="https://behance.net/danieldamian" target="_blank" rel="noreferrer" className="text-gray-400 hover:text-white transition-colors">Behance</a>

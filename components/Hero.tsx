@@ -18,19 +18,19 @@ export const Hero: React.FC<HeroProps> = ({ onCtaClick }) => {
         <div className="animate-fade-in space-y-8 max-w-4xl">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-white/5 backdrop-blur-sm">
             <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-            <span className="text-xs font-medium tracking-wide text-gray-400 uppercase">Available for new projects</span>
+            <span className="text-xs font-medium tracking-wide text-gray-400 uppercase">Disponível para novos projetos</span>
           </div>
           
           <h1 className="text-5xl sm:text-7xl md:text-8xl font-black text-white leading-[0.9] tracking-tighter">
-            ELEVATE YOUR <br />
+            ELEVE SUA <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-500">
-              VISUAL IDENTITY
+              IDENTIDADE VISUAL
             </span>
           </h1>
 
           <p className="text-lg md:text-xl text-gray-400 max-w-2xl mx-auto font-light leading-relaxed">
-            Premium design solutions for brands that dare to be different. 
-            Specializing in Custom Wear, Event Identity, and High-End Digital Experiences.
+            Soluções de design premium para marcas que ousam ser diferentes. 
+            Especialista em Custom Wear, Identidade de Eventos e Experiências Digitais.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">

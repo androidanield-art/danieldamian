@@ -60,7 +60,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentView }) => {
               <button
                 onClick={() => onNavigate('admin')}
                 className="text-gray-600 hover:text-white transition-colors p-2"
-                aria-label="Admin Access"
+                aria-label="Acesso Admin"
               >
                 <Shield size={16} />
               </button>
@@ -115,7 +115,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentView }) => {
                 }}
                 className="block w-full text-left px-3 py-3 rounded-md text-base font-medium text-gray-500 hover:text-white"
               >
-                Admin Area
+                Área Administrativa
               </button>
           </div>
         </div>
