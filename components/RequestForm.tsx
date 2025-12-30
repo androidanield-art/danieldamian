@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ServiceCategory, ServiceRequest, RequestStatus } from '../types';
 import { saveRequest } from '../services/dataService';
 import { Button } from './Button';
-import { Upload, CheckCircle, AlertCircle, ArrowRight } from 'lucide-react';
+import { Upload, CheckCircle, AlertCircle, ArrowRight, Loader2 } from 'lucide-react';
 
 interface RequestFormProps {
   initialService?: ServiceCategory;
@@ -24,8 +24,7 @@ export const RequestForm: React.FC<RequestFormProps> = ({ initialService }) => {
     setStatus('submitting');
 
     try {
-      // Pequeno delay para feedback visual
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 800)); // Smooth UX delay
 
       const newRequest: ServiceRequest = {
         id: crypto.randomUUID(),
@@ -39,8 +38,6 @@ export const RequestForm: React.FC<RequestFormProps> = ({ initialService }) => {
       };
 
       await saveRequest(newRequest);
-      
-      console.info(`Enviando notificação para androidanield@gmail.com`);
       
       setStatus('success');
       setFormData({
@@ -65,68 +62,69 @@ export const RequestForm: React.FC<RequestFormProps> = ({ initialService }) => {
 
   if (status === 'success') {
     return (
-      <div className="max-w-2xl mx-auto p-8 bg-brand-dark border border-white/10 text-center animate-in fade-in zoom-in duration-300">
-        <CheckCircle className="w-16 h-16 text-white mx-auto mb-6" />
-        <h3 className="text-2xl font-bold text-white mb-4">Solicitação Enviada</h3>
-        <p className="text-gray-400 mb-8 font-light">
-          Seu projeto foi cadastrado. Em breve entrarei em contato através do e-mail:
-          <br/>
-          <span className="text-white font-medium border-b border-white/20 pb-0.5"> {formData.email}</span>.
+      <div className="max-w-2xl mx-auto p-12 glass rounded-2xl text-center animate-fade-in">
+        <div className="w-20 h-20 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+          <CheckCircle className="w-10 h-10 text-green-500" />
+        </div>
+        <h3 className="text-3xl font-bold text-white mb-4">Solicitação Recebida</h3>
+        <p className="text-gray-400 mb-8 font-light text-lg">
+          Seu projeto está em nossa fila de análise. <br />
+          Entraremos em contato via <span className="text-white font-medium">{formData.email}</span> em breve.
         </p>
-        <Button onClick={() => setStatus('idle')} variant="outline">
-          Nova Solicitação
+        <Button onClick={() => setStatus('idle')} variant="outline" className="min-w-[200px]">
+          Voltar
         </Button>
       </div>
     );
   }
 
   return (
-    <div className="max-w-3xl mx-auto">
-      <div className="mb-10 text-center md:text-left">
-        <h2 className="text-3xl md:text-5xl font-black text-white mb-4 tracking-tight uppercase">
-          Solicitar Orçamento
+    <div className="max-w-4xl mx-auto">
+      <div className="mb-12 text-center">
+        <h2 className="text-3xl md:text-5xl font-black text-white mb-6 tracking-tight">
+          INICIAR PROJETO
         </h2>
-        <p className="text-gray-400 text-lg font-light max-w-xl">
-          Preencha os detalhes abaixo para iniciarmos o processo de criação do seu projeto exclusivo.
+        <p className="text-gray-400 text-lg font-light max-w-xl mx-auto">
+          Nos conte sobre sua ideia. Transformamos conceitos em realidade visual de alto impacto.
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-8 bg-brand-dark/50 p-6 md:p-10 border border-white/5 shadow-2xl">
+      <form onSubmit={handleSubmit} className="space-y-8 glass p-8 md:p-12 rounded-2xl shadow-2xl backdrop-blur-xl bg-brand-dark/30">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Nome Completo</label>
+          <div className="space-y-3">
+            <label className="text-xs font-bold text-gray-500 uppercase tracking-widest pl-1">Seu Nome</label>
             <input
               required
               type="text"
-              className="w-full bg-black border border-white/10 p-4 text-white focus:outline-none focus:border-white focus:ring-1 focus:ring-white transition-all placeholder-gray-700"
-              placeholder="Digite seu nome"
+              className="w-full bg-brand-black/50 border border-white/10 rounded-lg p-4 text-white focus:outline-none focus:border-white/40 focus:ring-1 focus:ring-white/20 transition-all placeholder-gray-700"
+              placeholder="Como prefere ser chamado?"
               value={formData.name}
               onChange={(e) => setFormData({...formData, name: e.target.value})}
             />
           </div>
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">E-mail Corporativo ou Pessoal</label>
+          <div className="space-y-3">
+            <label className="text-xs font-bold text-gray-500 uppercase tracking-widest pl-1">E-mail de Contato</label>
             <input
               required
               type="email"
-              className="w-full bg-black border border-white/10 p-4 text-white focus:outline-none focus:border-white focus:ring-1 focus:ring-white transition-all placeholder-gray-700"
-              placeholder="nome@exemplo.com"
+              className="w-full bg-brand-black/50 border border-white/10 rounded-lg p-4 text-white focus:outline-none focus:border-white/40 focus:ring-1 focus:ring-white/20 transition-all placeholder-gray-700"
+              placeholder="exemplo@empresa.com"
               value={formData.email}
               onChange={(e) => setFormData({...formData, email: e.target.value})}
             />
           </div>
         </div>
 
-        <div className="space-y-2">
-          <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Tipo de Serviço</label>
+        <div className="space-y-3">
+          <label className="text-xs font-bold text-gray-500 uppercase tracking-widest pl-1">O que você precisa?</label>
           <div className="relative">
             <select
-              className="w-full bg-black border border-white/10 p-4 text-white focus:outline-none focus:border-white focus:ring-1 focus:ring-white transition-all appearance-none cursor-pointer"
+              className="w-full bg-brand-black/50 border border-white/10 rounded-lg p-4 text-white focus:outline-none focus:border-white/40 focus:ring-1 focus:ring-white/20 transition-all appearance-none cursor-pointer"
               value={formData.service}
               onChange={(e) => setFormData({...formData, service: e.target.value as ServiceCategory})}
             >
               {Object.values(ServiceCategory).map((service) => (
-                <option key={service} value={service} className="bg-black text-white py-2">
+                <option key={service} value={service} className="bg-brand-dark text-white py-2">
                   {service}
                 </option>
               ))}
@@ -137,20 +135,20 @@ export const RequestForm: React.FC<RequestFormProps> = ({ initialService }) => {
           </div>
         </div>
 
-        <div className="space-y-2">
-          <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Detalhes do Projeto</label>
+        <div className="space-y-3">
+          <label className="text-xs font-bold text-gray-500 uppercase tracking-widest pl-1">Detalhes do Briefing</label>
           <textarea
             required
             rows={5}
-            className="w-full bg-black border border-white/10 p-4 text-white focus:outline-none focus:border-white focus:ring-1 focus:ring-white transition-all placeholder-gray-700 resize-none"
-            placeholder="Descreva sua ideia, público-alvo e prazos desejados..."
+            className="w-full bg-brand-black/50 border border-white/10 rounded-lg p-4 text-white focus:outline-none focus:border-white/40 focus:ring-1 focus:ring-white/20 transition-all placeholder-gray-700 resize-none leading-relaxed"
+            placeholder="Descreva o projeto, objetivos, prazos e referências visuais..."
             value={formData.description}
             onChange={(e) => setFormData({...formData, description: e.target.value})}
           />
         </div>
 
-        <div className="space-y-2">
-          <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Arquivos de Referência (Opcional)</label>
+        <div className="space-y-3">
+          <label className="text-xs font-bold text-gray-500 uppercase tracking-widest pl-1">Anexo (Opcional)</label>
           <div className="relative group">
             <input
               type="file"
@@ -160,19 +158,19 @@ export const RequestForm: React.FC<RequestFormProps> = ({ initialService }) => {
             />
             <label
               htmlFor="file-upload"
-              className="flex flex-col items-center justify-center w-full h-32 border border-dashed border-white/20 hover:border-white hover:bg-white/5 cursor-pointer bg-black transition-all duration-300"
+              className="flex flex-col items-center justify-center w-full h-32 border border-dashed border-white/10 rounded-lg hover:border-white/30 hover:bg-white/5 cursor-pointer bg-brand-black/30 transition-all duration-300"
             >
               <div className="text-center space-y-2">
                 {formData.file ? (
-                  <>
-                     <CheckCircle className="w-6 h-6 text-green-500 mx-auto" />
-                     <span className="text-sm text-white font-medium block">{formData.file.name}</span>
-                  </>
+                  <div className="flex items-center gap-2 px-4 py-2 bg-white/10 rounded-full">
+                     <CheckCircle className="w-5 h-5 text-green-500" />
+                     <span className="text-sm text-white font-medium">{formData.file.name}</span>
+                  </div>
                 ) : (
                   <>
-                    <Upload className="w-6 h-6 text-gray-500 mx-auto group-hover:text-white transition-colors" />
+                    <Upload className="w-6 h-6 text-gray-500 group-hover:text-white transition-colors mx-auto" />
                     <span className="text-sm text-gray-500 group-hover:text-white transition-colors">
-                      Clique para adicionar referências visuais
+                      Arraste ou clique para enviar referências
                     </span>
                   </>
                 )}
@@ -182,14 +180,27 @@ export const RequestForm: React.FC<RequestFormProps> = ({ initialService }) => {
         </div>
 
         {status === 'error' && (
-          <div className="flex items-center gap-2 text-red-400 bg-red-900/20 p-4 border border-red-900/30 text-sm">
+          <div className="flex items-center gap-2 text-red-400 bg-red-900/10 p-4 border border-red-900/20 rounded-lg text-sm">
             <AlertCircle size={16} />
-            <span>Ocorreu um erro ao enviar. Verifique sua conexão.</span>
+            <span>Erro ao conectar com o servidor. Tente novamente.</span>
           </div>
         )}
 
-        <Button type="submit" fullWidth disabled={status === 'submitting'} className="h-14 text-lg font-bold tracking-wider uppercase">
-          {status === 'submitting' ? 'Processando...' : 'Confirmar Solicitação'} <ArrowRight size={20} className="ml-2" />
+        <Button 
+          type="submit" 
+          fullWidth 
+          disabled={status === 'submitting'} 
+          className="h-16 text-lg font-bold tracking-wider uppercase rounded-lg hover:scale-[1.01] active:scale-[0.99]"
+        >
+          {status === 'submitting' ? (
+            <span className="flex items-center gap-2">
+              <Loader2 className="animate-spin" /> Processando...
+            </span>
+          ) : (
+            <span className="flex items-center gap-2">
+              Enviar Solicitação <ArrowRight size={20} />
+            </span>
+          )}
         </Button>
       </form>
     </div>
