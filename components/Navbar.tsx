@@ -1,5 +1,5 @@
 import React from 'react';
-import { Menu, X, Shield } from 'lucide-react';
+import { Menu, X, Shield, User } from 'lucide-react';
 
 interface NavbarProps {
   onNavigate: (view: string) => void;
@@ -32,7 +32,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentView }) => {
 
           {/* Desktop Menu */}
           <div className="hidden md:block">
-            <div className="ml-10 flex items-baseline space-x-8">
+            <div className="ml-10 flex items-center space-x-8">
               {navItems.map((item) => (
                 <button
                   key={item.id}
@@ -46,6 +46,17 @@ export const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentView }) => {
                   {item.label}
                 </button>
               ))}
+              
+              <div className="h-6 w-px bg-white/10 mx-2"></div>
+
+              <button
+                onClick={() => onNavigate('client-portal')}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-bold bg-white/5 hover:bg-white text-white hover:text-black rounded-lg transition-all border border-white/10"
+              >
+                <User size={14} />
+                Área do Cliente
+              </button>
+
               <button
                 onClick={() => onNavigate('admin')}
                 className="text-gray-600 hover:text-white transition-colors p-2"
@@ -88,6 +99,15 @@ export const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentView }) => {
                 {item.label}
               </button>
             ))}
+             <button
+                onClick={() => {
+                  onNavigate('client-portal');
+                  setIsOpen(false);
+                }}
+                className="block w-full text-left px-3 py-3 rounded-md text-base font-bold bg-white text-black mt-4 mb-2"
+              >
+                Área do Cliente
+              </button>
              <button
                 onClick={() => {
                   onNavigate('admin');

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ServiceRequest, RequestStatus, ServiceCategory } from '../types';
 import { getRequests, updateRequestStatus, deleteRequest, saveRequest, updateRequest } from '../services/dataService';
 import { isSupabaseConfigured } from '../services/supabaseClient';
-import { Clock, CheckCircle, PlayCircle, Trash2, Mail, FileText, Plus, X, Edit2, DollarSign, RefreshCw, Database, Wifi, WifiOff, Code, Monitor, Download } from 'lucide-react';
+import { Clock, CheckCircle, PlayCircle, Trash2, Mail, FileText, Plus, X, Edit2, DollarSign, RefreshCw, Database, Wifi, WifiOff, Code, Monitor, Download, Users, LayoutDashboard, Key, Copy, ArrowRight } from 'lucide-react';
 
 // --- COMPONENTS ---
 
@@ -21,7 +21,8 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, onSave, in
     description: '',
     status: RequestStatus.PENDING,
     tags: [],
-    budget: ''
+    budget: '',
+    clientAccessCode: ''
   });
 
   useEffect(() => {
@@ -35,7 +36,8 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, onSave, in
         description: '',
         status: RequestStatus.PENDING,
         tags: [],
-        budget: ''
+        budget: '',
+        clientAccessCode: ''
       });
     }
   }, [initialData, isOpen]);
@@ -54,7 +56,8 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, onSave, in
       status: formData.status as RequestStatus,
       tags: formData.tags || [],
       referenceFileName: initialData?.referenceFileName,
-      budget: formData.budget || ''
+      budget: formData.budget || '',
+      clientAccessCode: formData.clientAccessCode || ''
     };
     onSave(request);
     onClose();
@@ -150,6 +153,23 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, onSave, in
                   onChange={e => setFormData({...formData, budget: e.target.value})}
                 />
              </div>
+          </div>
+
+          <div>
+             <label className="block text-sm font-medium text-gray-400 mb-2">Código de Acesso do Cliente</label>
+             <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Key size={14} className="text-gray-500"/>
+                </div>
+                <input
+                  type="text"
+                  placeholder="Gerado automaticamente na aba Clientes"
+                  className="w-full bg-black/50 border border-white/10 rounded-lg pl-10 pr-4 py-2 text-white focus:outline-none focus:border-white transition-colors font-mono"
+                  value={formData.clientAccessCode || ''}
+                  onChange={e => setFormData({...formData, clientAccessCode: e.target.value})}
+                />
+             </div>
+             <p className="text-[10px] text-gray-500 mt-1">Este código permite que o cliente veja este projeto na área dele.</p>
           </div>
 
           <div>
@@ -364,6 +384,8 @@ export const AdminPanel: React.FC<{onLogout: () => void}> = ({onLogout}) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<ServiceRequest | null>(null);
   const [showDebug, setShowDebug] = useState(false);
+  const [viewMode, setViewMode] = useState<'dashboard' | 'clients'>('dashboard');
+  const [selectedClientName, setSelectedClientName] = useState<string | null>(null);
   const isOnline = isSupabaseConfigured();
 
   useEffect(() => {
@@ -409,42 +431,21 @@ export const AdminPanel: React.FC<{onLogout: () => void}> = ({onLogout}) => {
   };
 
   const handleExportCSV = () => {
-    // Cabeçalhos em snake_case para compatibilidade direta com Supabase
     const headers = [
-      'id', 
-      'created_at', 
-      'client_name', 
-      'client_email', 
-      'service_type', 
-      'status', 
-      'budget', 
-      'description', 
-      'tags', 
-      'reference_file_name'
+      'id', 'created_at', 'client_name', 'client_email', 'service_type', 
+      'status', 'budget', 'description', 'tags', 'reference_file_name', 'client_access_code'
     ];
     
     const csvContent = requests.map(req => {
-      // Data em formato ISO para o banco de dados
       const date = new Date(req.createdAt).toISOString().replace('T', ' ').substring(0, 19);
-      
       const cleanDesc = (req.description || '').replace(/"/g, '""').replace(/\n/g, ' ');
       const cleanName = (req.clientName || '').replace(/"/g, '""');
-      
-      // Formato de array Postgres: "{item1,item2}"
-      const tagsArray = req.tags || [];
-      const tagsFormatted = `"{${tagsArray.join(',')}}"`;
+      const tagsFormatted = `"{${(req.tags || []).join(',')}}"`;
       
       return [
-        req.id,
-        date,
-        `"${cleanName}"`,
-        `"${req.clientEmail || ''}"`,
-        `"${req.serviceType}"`,
-        `"${req.status}"`,
-        `"${req.budget || ''}"`,
-        `"${cleanDesc}"`,
-        `"${tagsFormatted}"`, // Aspas extras para garantir que o CSV não quebre nas vírgulas internas
-        `"${req.referenceFileName || ''}"`
+        req.id, date, `"${cleanName}"`, `"${req.clientEmail || ''}"`, `"${req.serviceType}"`,
+        `"${req.status}"`, `"${req.budget || ''}"`, `"${cleanDesc}"`, `"${tagsFormatted}"`,
+        `"${req.referenceFileName || ''}"`, `"${req.clientAccessCode || ''}"`
       ].join(',');
     });
 
@@ -453,13 +454,38 @@ export const AdminPanel: React.FC<{onLogout: () => void}> = ({onLogout}) => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    // Nome do arquivo amigável, mas conteúdo técnico
     link.download = `backup_supabase_${new Date().toISOString().slice(0,10)}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   };
+
+  // --- Logic for Clients View ---
+  const uniqueClients = Array.from(new Set(requests.map(r => r.clientName))).sort();
+  
+  const generateClientCode = async (clientName: string) => {
+    // Generate a simple 6 char code
+    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+    
+    // Find all requests for this client
+    const clientRequests = requests.filter(r => r.clientName === clientName);
+    
+    // Update all requests with the new code
+    for (const req of clientRequests) {
+      await updateRequest({ ...req, clientAccessCode: code });
+    }
+    setRefresh(prev => prev + 1);
+    alert(`Código ${code} gerado para ${clientName}. Todos os projetos deste cliente foram atualizados.`);
+  };
+
+  const filteredRequests = viewMode === 'clients' && selectedClientName 
+    ? requests.filter(r => r.clientName === selectedClientName)
+    : requests;
+
+  const currentClientCode = viewMode === 'clients' && selectedClientName
+    ? requests.find(r => r.clientName === selectedClientName)?.clientAccessCode
+    : null;
 
   return (
     <div className="min-h-screen bg-brand-black pt-24 pb-4 px-4 sm:px-6 lg:px-8 flex flex-col">
@@ -469,19 +495,31 @@ export const AdminPanel: React.FC<{onLogout: () => void}> = ({onLogout}) => {
           <div className="flex items-center gap-4">
              <div>
                 <h2 className="text-3xl font-black text-white flex items-center gap-3">
-                  PROJETOS
+                  PAINEL ADMIN
                 </h2>
                 <div className="flex items-center gap-2 mt-1">
                   <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold border ${isOnline ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'}`}>
                     {isOnline ? <Wifi size={10} /> : <WifiOff size={10} />}
-                    {isOnline ? 'CONECTADO (SUPABASE)' : 'OFFLINE (LOCAL STORAGE)'}
+                    {isOnline ? 'CONECTADO' : 'OFFLINE'}
                   </div>
-                  {!isOnline && (
-                    <span className="text-xs text-gray-500 hidden sm:inline">
-                      Configure a chave na tela de login para ver o banco de dados.
-                    </span>
-                  )}
                 </div>
+             </div>
+             
+             <div className="flex gap-2 ml-4">
+                <button 
+                  onClick={() => { setViewMode('dashboard'); setSelectedClientName(null); }}
+                  className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${viewMode === 'dashboard' ? 'bg-white text-black font-bold' : 'bg-white/5 text-gray-400 hover:text-white'}`}
+                >
+                  <LayoutDashboard size={18} />
+                  Visão Geral
+                </button>
+                <button 
+                  onClick={() => setViewMode('clients')}
+                  className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${viewMode === 'clients' ? 'bg-white text-black font-bold' : 'bg-white/5 text-gray-400 hover:text-white'}`}
+                >
+                  <Users size={18} />
+                  Clientes
+                </button>
              </div>
           </div>
           
@@ -489,16 +527,14 @@ export const AdminPanel: React.FC<{onLogout: () => void}> = ({onLogout}) => {
              <button
                onClick={() => setShowDebug(!showDebug)}
                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors border ${showDebug ? 'bg-blue-500/20 border-blue-500 text-blue-400' : 'bg-white/5 border-white/10 text-gray-400 hover:text-white'}`}
-               title="Ver JSON Bruto"
              >
                {showDebug ? <Monitor size={18} /> : <Code size={18} />}
-               <span className="hidden sm:inline">{showDebug ? 'Voltar ao Kanban' : 'Debug JSON'}</span>
              </button>
 
              <button
                onClick={handleExportCSV}
                className="flex items-center justify-center p-2 bg-white/5 text-white hover:bg-white/10 rounded-lg transition-colors border border-white/10"
-               title="Exportar Backup CSV (Compatível Supabase)"
+               title="Exportar CSV"
              >
                <Download size={20} />
              </button>
@@ -507,7 +543,6 @@ export const AdminPanel: React.FC<{onLogout: () => void}> = ({onLogout}) => {
                onClick={() => setRefresh(prev => prev + 1)}
                disabled={isLoading}
                className="flex items-center justify-center p-2 bg-white/5 text-white hover:bg-white/10 rounded-lg transition-colors border border-white/10"
-               title="Atualizar Dados"
              >
                <RefreshCw size={20} className={isLoading ? "animate-spin" : ""} />
              </button>
@@ -531,58 +566,112 @@ export const AdminPanel: React.FC<{onLogout: () => void}> = ({onLogout}) => {
           </div>
         </div>
 
-        {showDebug ? (
-          <div className="flex-1 overflow-auto p-4">
-             <div className="bg-[#0f0f0f] border border-white/10 rounded-xl p-6 shadow-2xl h-full flex flex-col">
-               <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-white font-bold flex items-center gap-2">
-                    <Database size={20} className="text-blue-500"/>
-                    Dados Brutos (DB Dump)
-                  </h3>
-                  <span className="text-xs text-gray-500">
-                    Mostrando dados da tabela: <strong>service_requests</strong>
-                  </span>
-               </div>
-               <div className="flex-1 relative">
-                 <pre className="absolute inset-0 font-mono text-xs text-green-400 whitespace-pre-wrap break-all bg-black p-4 rounded-lg border border-white/5 overflow-auto custom-scrollbar">
-                   {JSON.stringify(requests, null, 2)}
-                 </pre>
-               </div>
-             </div>
-          </div>
-        ) : (
-          <div className="flex-1 overflow-x-auto overflow-y-hidden pb-4">
-            <div className="flex gap-6 h-full items-start px-2">
-              <KanbanColumn 
-                title="Pendente / Novos" 
-                status={RequestStatus.PENDING}
-                requests={requests.filter(r => r.status === RequestStatus.PENDING)}
-                onStatusChange={handleStatusChange}
-                onDelete={handleDelete}
-                onEdit={openEditProject}
-                icon={<Clock size={16} className="text-yellow-500" />}
-              />
-              <KanbanColumn 
-                title="Em Produção" 
-                status={RequestStatus.IN_PROGRESS}
-                requests={requests.filter(r => r.status === RequestStatus.IN_PROGRESS)}
-                onStatusChange={handleStatusChange}
-                onDelete={handleDelete}
-                onEdit={openEditProject}
-                icon={<PlayCircle size={16} className="text-blue-500" />}
-              />
-              <KanbanColumn 
-                title="Finalizado" 
-                status={RequestStatus.COMPLETED}
-                requests={requests.filter(r => r.status === RequestStatus.COMPLETED)}
-                onStatusChange={handleStatusChange}
-                onDelete={handleDelete}
-                onEdit={openEditProject}
-                icon={<CheckCircle size={16} className="text-green-500" />}
-              />
+        {/* Content Area */}
+        <div className="flex flex-1 overflow-hidden gap-6">
+          
+          {/* Sidebar for Clients View */}
+          {viewMode === 'clients' && (
+            <div className="w-64 shrink-0 bg-[#0f0f0f] border border-white/10 rounded-xl overflow-y-auto custom-scrollbar flex flex-col">
+              <div className="p-4 border-b border-white/10 bg-black/20 sticky top-0">
+                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest">Lista de Clientes</h3>
+              </div>
+              <div className="p-2 space-y-1">
+                {uniqueClients.map(client => (
+                  <button
+                    key={client}
+                    onClick={() => setSelectedClientName(client)}
+                    className={`w-full text-left px-3 py-3 rounded-lg text-sm transition-colors flex justify-between items-center ${selectedClientName === client ? 'bg-white/10 text-white font-bold' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
+                  >
+                    <span className="truncate">{client}</span>
+                    <ArrowRight size={14} className={`opacity-0 ${selectedClientName === client ? 'opacity-100' : 'group-hover:opacity-50'}`} />
+                  </button>
+                ))}
+              </div>
             </div>
+          )}
+
+          {/* Main Stage (Kanban or JSON) */}
+          <div className="flex-1 overflow-hidden flex flex-col">
+             {viewMode === 'clients' && selectedClientName && (
+               <div className="mb-4 p-4 bg-brand-dark/50 border border-white/10 rounded-xl flex items-center justify-between">
+                 <div>
+                   <h3 className="text-xl font-bold text-white">{selectedClientName}</h3>
+                   <p className="text-gray-400 text-sm">Visualizando Kanban exclusivo do cliente</p>
+                 </div>
+                 <div className="flex items-center gap-3">
+                    {currentClientCode ? (
+                       <div className="flex items-center gap-2 bg-black/40 px-3 py-2 rounded border border-white/10">
+                         <span className="text-xs text-gray-500 uppercase">Chave de Acesso:</span>
+                         <span className="text-green-400 font-mono font-bold tracking-widest text-lg">{currentClientCode}</span>
+                         <button 
+                            onClick={() => {navigator.clipboard.writeText(currentClientCode || ''); alert("Código copiado!");}}
+                            className="ml-2 text-gray-400 hover:text-white"
+                            title="Copiar Código"
+                          >
+                           <Copy size={14} />
+                         </button>
+                       </div>
+                    ) : (
+                      <span className="text-yellow-500 text-xs flex items-center gap-1">
+                        <Key size={12}/> Sem chave de acesso
+                      </span>
+                    )}
+                    <button 
+                      onClick={() => generateClientCode(selectedClientName)}
+                      className="px-3 py-2 bg-white/5 hover:bg-white/10 text-white text-xs border border-white/10 rounded transition-colors"
+                    >
+                      {currentClientCode ? 'Gerar Nova Chave' : 'Gerar Chave de Acesso'}
+                    </button>
+                 </div>
+               </div>
+             )}
+
+             {showDebug ? (
+                <div className="bg-[#0f0f0f] border border-white/10 rounded-xl p-6 shadow-2xl h-full flex flex-col overflow-auto">
+                  <pre className="text-xs text-green-400 whitespace-pre-wrap">{JSON.stringify(filteredRequests, null, 2)}</pre>
+                </div>
+              ) : (
+                <div className="flex-1 overflow-x-auto overflow-y-hidden pb-4">
+                  {viewMode === 'clients' && !selectedClientName ? (
+                    <div className="h-full flex flex-col items-center justify-center text-gray-500 border border-white/5 rounded-xl bg-white/5">
+                       <Users size={48} className="mb-4 opacity-20" />
+                       <p>Selecione um cliente no menu lateral para ver seus projetos.</p>
+                    </div>
+                  ) : (
+                    <div className="flex gap-6 h-full items-start px-2">
+                      <KanbanColumn 
+                        title="Pendente / Novos" 
+                        status={RequestStatus.PENDING}
+                        requests={filteredRequests.filter(r => r.status === RequestStatus.PENDING)}
+                        onStatusChange={handleStatusChange}
+                        onDelete={handleDelete}
+                        onEdit={openEditProject}
+                        icon={<Clock size={16} className="text-yellow-500" />}
+                      />
+                      <KanbanColumn 
+                        title="Em Produção" 
+                        status={RequestStatus.IN_PROGRESS}
+                        requests={filteredRequests.filter(r => r.status === RequestStatus.IN_PROGRESS)}
+                        onStatusChange={handleStatusChange}
+                        onDelete={handleDelete}
+                        onEdit={openEditProject}
+                        icon={<PlayCircle size={16} className="text-blue-500" />}
+                      />
+                      <KanbanColumn 
+                        title="Finalizado" 
+                        status={RequestStatus.COMPLETED}
+                        requests={filteredRequests.filter(r => r.status === RequestStatus.COMPLETED)}
+                        onStatusChange={handleStatusChange}
+                        onDelete={handleDelete}
+                        onEdit={openEditProject}
+                        icon={<CheckCircle size={16} className="text-green-500" />}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
           </div>
-        )}
+        </div>
       </div>
 
       <ProjectModal 

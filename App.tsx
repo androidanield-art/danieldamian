@@ -6,10 +6,11 @@ import { About } from './components/About';
 import { RequestForm } from './components/RequestForm';
 import { AdminLogin } from './components/AdminLogin';
 import { AdminPanel } from './components/AdminPanel';
+import { ClientPortal } from './components/ClientPortal';
 import { ServiceCategory } from './types';
 
 // Simple Router implementation for SPA feeling
-type View = 'home' | 'services' | 'about' | 'contact' | 'admin';
+type View = 'home' | 'services' | 'about' | 'contact' | 'admin' | 'client-portal';
 
 const App: React.FC = () => {
   const [view, setView] = useState<View>('home');
@@ -50,12 +51,15 @@ const App: React.FC = () => {
     setView('home');
   };
 
+  const isFullScreen = view === 'admin' || view === 'client-portal';
+
   return (
     <div className="bg-brand-black min-h-screen text-white font-sans selection:bg-white selection:text-black">
-      {view !== 'admin' && (
+      {!isFullScreen && (
         <Navbar onNavigate={handleNavigate} currentView={view} />
       )}
 
+      {/* ADMIN ROUTE */}
       {view === 'admin' ? (
         isAdminAuthenticated ? (
           <AdminPanel onLogout={handleLogout} />
@@ -70,7 +74,11 @@ const App: React.FC = () => {
             <AdminLogin onLoginSuccess={handleLoginSuccess} />
           </div>
         )
+      ) : view === 'client-portal' ? (
+        /* CLIENT PORTAL ROUTE */
+        <ClientPortal onBack={() => handleNavigate('home')} />
       ) : (
+        /* PUBLIC ROUTES */
         <main>
           {view === 'home' && (
             <>
@@ -100,7 +108,7 @@ const App: React.FC = () => {
         </main>
       )}
 
-      {view !== 'admin' && (
+      {!isFullScreen && (
         <footer className="bg-black border-t border-white/10 py-12 px-4">
           <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
             <div>

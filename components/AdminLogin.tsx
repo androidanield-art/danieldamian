@@ -55,7 +55,8 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
       'status',
       'tags',
       'budget',
-      'reference_file_name'
+      'reference_file_name',
+      'client_access_code'
     ];
 
     // Formato de Data Compatível com Supabase (YYYY-MM-DD HH:mm:ss)
@@ -74,7 +75,8 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
       'Pendente',
       '"{Pendente de Orçamento}"', // Array formatado para Postgres
       '1500,00',
-      'referencia.jpg'
+      'referencia.jpg',
+      'XYZ123'
     ];
 
     const csvContent = [headers.join(','), dummyRow.join(',')].join('\n');

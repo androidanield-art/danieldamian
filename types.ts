@@ -25,6 +25,7 @@ export interface ServiceRequest {
   status: RequestStatus;
   tags?: string[];
   budget?: string;
+  clientAccessCode?: string; // Novo campo para o código de acesso
 }
 
 export interface AdminUser {
