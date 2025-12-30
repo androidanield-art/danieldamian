@@ -47,7 +47,15 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
 
   const copySQL = () => {
     const sql = `
-create table service_requests (
+-- SOLUÇÃO DE ERROS DE TABELA EXISTENTE
+
+-- OPÇÃO A: Limpeza Total (Recomendado se tiver problemas de colunas)
+-- Apaga a tabela antiga e cria do zero. REMOVE TODOS OS DADOS.
+-- Descomente a linha abaixo para usar:
+-- drop table if exists service_requests cascade;
+
+-- OPÇÃO B: Criação Segura (Mantém dados se a tabela existir)
+create table if not exists service_requests (
   id uuid default gen_random_uuid() primary key,
   created_at timestamptz default now(),
   client_name text not null,
@@ -61,15 +69,24 @@ create table service_requests (
   client_access_code text
 );
 
+-- Configura permissões (RLS)
 alter table service_requests enable row level security;
 
-create policy "Public Access"
+-- Remove políticas antigas para evitar o erro "policy already exists"
+drop policy if exists "Permitir acesso total publico" on service_requests;
+drop policy if exists "Public Access" on service_requests;
+drop policy if exists "Acesso Publico Total" on service_requests;
+
+-- Cria a nova política
+create policy "Permitir acesso total publico"
 on service_requests
 for all
-using (true);
+to anon
+using (true)
+with check (true);
     `;
     navigator.clipboard.writeText(sql);
-    alert("Código SQL copiado! Cole no SQL Editor do Supabase.");
+    alert("Código SQL Atualizado copiado! Cole no SQL Editor do Supabase.");
   };
 
   return (
@@ -196,7 +213,7 @@ using (true);
                </h4>
                
                <p className="text-[10px] text-gray-500 mb-3">
-                 Se o teste de conexão diz que a tabela não existe, copie o SQL abaixo e rode no <strong>SQL Editor</strong> do Supabase.
+                 Se o teste de conexão diz que a tabela já existe (Erro 42P07), use o botão abaixo para copiar o SQL corrigido que resolve isso.
                </p>
 
                <button 
@@ -204,7 +221,7 @@ using (true);
                   className="w-full flex items-center justify-center gap-2 p-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-colors group"
                 >
                   <Copy className="w-4 h-4 text-gray-400 group-hover:text-white" />
-                  <span className="text-xs text-gray-300 font-medium">Copiar Comando SQL</span>
+                  <span className="text-xs text-gray-300 font-medium">Copiar SQL Corrigido</span>
                 </button>
             </div>
           </div>
