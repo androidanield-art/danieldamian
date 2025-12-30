@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from './Button';
-import { Lock, Settings, X, Database, CheckCircle, AlertCircle, Loader2, Download, FileSpreadsheet } from 'lucide-react';
-import { saveSupabaseKey, isSupabaseConfigured, testConnection } from '../services/supabaseClient';
+import { Lock, Settings, X, Database, CheckCircle, AlertCircle, Loader2, Copy, FileCode } from 'lucide-react';
+import { saveSupabaseConfig, isSupabaseConfigured, testConnection } from '../services/supabaseClient';
 
 interface AdminLoginProps {
   onLoginSuccess: () => void;
@@ -12,7 +12,9 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [showConfig, setShowConfig] = useState(false);
-  const [apiKey, setApiKey] = useState('');
+  
+  const [configUrl, setConfigUrl] = useState('');
+  const [configKey, setConfigKey] = useState('');
   
   // Estados para o teste
   const [testStatus, setTestStatus] = useState<{success: boolean; message: string} | null>(null);
@@ -28,10 +30,10 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
     }
   };
 
-  const handleSaveKey = (e: React.FormEvent) => {
+  const handleSaveConfig = (e: React.FormEvent) => {
     e.preventDefault();
-    if (apiKey.trim()) {
-      saveSupabaseKey(apiKey.trim());
+    if (configUrl.trim() && configKey.trim()) {
+      saveSupabaseConfig(configUrl.trim(), configKey.trim());
     }
   };
 
@@ -43,52 +45,31 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
     setIsTesting(false);
   };
 
-  const handleDownloadCsvTemplate = () => {
-    // Cabeçalhos exatos que o sistema espera
-    const headers = [
-      'id',
-      'created_at',
-      'client_name',
-      'client_email',
-      'service_type',
-      'description',
-      'status',
-      'tags',
-      'budget',
-      'reference_file_name',
-      'client_access_code'
-    ];
+  const copySQL = () => {
+    const sql = `
+create table service_requests (
+  id uuid default gen_random_uuid() primary key,
+  created_at timestamptz default now(),
+  client_name text not null,
+  client_email text,
+  service_type text,
+  description text,
+  status text default 'Pendente',
+  tags text[] default '{}',
+  budget text,
+  reference_file_name text,
+  client_access_code text
+);
 
-    // Formato de Data Compatível com Supabase (YYYY-MM-DD HH:mm:ss)
-    const now = new Date();
-    const dateStr = now.toISOString().replace('T', ' ').substring(0, 19);
+alter table service_requests enable row level security;
 
-    // Linha de exemplo
-    // NOTA: Para arrays no CSV do Supabase, usamos formato Postgres {item1,item2} entre aspas duplas
-    const dummyRow = [
-      `req_${crypto.randomUUID().slice(0,8)}`, // ID único
-      dateStr, // Data em formato SQL Timestamp
-      'Cliente Exemplo',
-      'cliente@email.com',
-      'Custom Wear',
-      'Descrição do projeto exemplo para teste de importação.',
-      'Pendente',
-      '"{Pendente de Orçamento}"', // Array formatado para Postgres
-      '1500,00',
-      'referencia.jpg',
-      'XYZ123'
-    ];
-
-    const csvContent = [headers.join(','), dummyRow.join(',')].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'modelo_importacao_supabase.csv';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+create policy "Public Access"
+on service_requests
+for all
+using (true);
+    `;
+    navigator.clipboard.writeText(sql);
+    alert("Código SQL copiado! Cole no SQL Editor do Supabase.");
   };
 
   return (
@@ -157,21 +138,29 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
             </div>
 
             <p className="text-xs text-gray-400 mb-4 leading-relaxed">
-              O projeto foi configurado com a URL: <br/>
-              <span className="text-blue-400">https://hakvrpgmieqhnvduppnh.supabase.co</span>
-              <br/><br/>
-              A chave pública já foi inserida no código. Você pode testar a conexão diretamente ou sobrescrever com uma nova chave abaixo.
+              Vá em <strong>Project Settings &gt; API</strong> no Supabase para pegar as chaves.
             </p>
 
-            <form onSubmit={handleSaveKey} className="space-y-4">
+            <form onSubmit={handleSaveConfig} className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-gray-400 mb-1">Anon Public Key (Opcional)</label>
+                <label className="block text-xs font-medium text-gray-400 mb-1">Project URL</label>
+                <input
+                  type="text"
+                  placeholder="https://sua-id.supabase.co"
+                  className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-white text-sm focus:border-blue-500 outline-none"
+                  value={configUrl}
+                  onChange={e => setConfigUrl(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-400 mb-1">Anon Public Key</label>
                 <input
                   type="password"
-                  placeholder="Seu código já tem a chave, deixe em branco para usar a padrão"
+                  placeholder="eyJh..."
                   className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-white text-sm focus:border-blue-500 outline-none"
-                  value={apiKey}
-                  onChange={e => setApiKey(e.target.value)}
+                  value={configKey}
+                  onChange={e => setConfigKey(e.target.value)}
                 />
               </div>
               
@@ -188,7 +177,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
                   </Button>
                 )}
                 <Button type="submit" fullWidth className="flex-1 h-10 text-sm">
-                  Salvar Nova Chave
+                  Salvar Configuração
                 </Button>
               </div>
             </form>
@@ -202,27 +191,21 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
             
             <div className="mt-6 pt-4 border-t border-white/10">
                <h4 className="text-xs font-bold text-white mb-2 flex items-center gap-2">
-                 <FileSpreadsheet size={14} className="text-green-500"/> 
-                 Opções de Criação de Tabela
+                 <FileCode size={14} className="text-yellow-500"/> 
+                 Configuração da Tabela
                </h4>
                
                <p className="text-[10px] text-gray-500 mb-3">
-                 Se o comando SQL falhar, use o arquivo abaixo na opção <strong>"Upload CSV"</strong> do Supabase.
+                 Se o teste de conexão diz que a tabela não existe, copie o SQL abaixo e rode no <strong>SQL Editor</strong> do Supabase.
                </p>
 
-               <div className="grid grid-cols-2 gap-3 mb-4">
-                  <button 
-                    onClick={handleDownloadCsvTemplate}
-                    className="flex flex-col items-center justify-center p-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-colors group"
-                  >
-                    <Download className="w-5 h-5 text-gray-400 group-hover:text-white mb-1" />
-                    <span className="text-[10px] text-gray-300 font-medium">Baixar Modelo CSV</span>
-                    <span className="text-[9px] text-gray-500">Compatível com Import</span>
-                  </button>
-                  <div className="flex items-center justify-center p-3 bg-black/40 border border-white/5 rounded-lg">
-                    <span className="text-[10px] text-gray-500 text-center">Use este arquivo para criar a tabela automaticamente</span>
-                  </div>
-               </div>
+               <button 
+                  onClick={copySQL}
+                  className="w-full flex items-center justify-center gap-2 p-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-colors group"
+                >
+                  <Copy className="w-4 h-4 text-gray-400 group-hover:text-white" />
+                  <span className="text-xs text-gray-300 font-medium">Copiar Comando SQL</span>
+                </button>
             </div>
           </div>
         </div>

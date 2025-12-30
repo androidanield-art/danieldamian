@@ -24,7 +24,7 @@ const mapFromDb = (item: any): ServiceRequest => ({
   tags: item.tags || [],
   budget: item.budget,
   referenceFileName: item.reference_file_name,
-  clientAccessCode: item.client_access_code // Mapeamento do novo campo
+  clientAccessCode: item.client_access_code
 });
 
 const mapToDb = (req: ServiceRequest) => ({
@@ -38,8 +38,14 @@ const mapToDb = (req: ServiceRequest) => ({
   tags: req.tags,
   budget: req.budget,
   reference_file_name: req.referenceFileName,
-  client_access_code: req.clientAccessCode // Mapeamento do novo campo
+  client_access_code: req.clientAccessCode
 });
+
+// --- Sistema de Notificação Local ---
+const notifyDataChange = () => {
+  // Dispara evento para a mesma janela/aba
+  window.dispatchEvent(new Event('dnldm_data_updated'));
+};
 
 // --- Funções de Dados ---
 
@@ -51,8 +57,7 @@ export const getRequests = async (): Promise<ServiceRequest[]> => {
       .order('created_at', { ascending: false });
     
     if (error) {
-      console.error("ERRO AO BUSCAR NO SUPABASE:", error.message);
-      if (error.code === '42P01') return [];
+      if (error.code !== '42P01') console.error("ERRO AO BUSCAR NO SUPABASE:", error.message);
     } else if (data) {
       return data.map(mapFromDb);
     }
@@ -85,15 +90,20 @@ export const getRequestsByAccessCode = async (code: string): Promise<ServiceRequ
 };
 
 export const saveRequest = async (request: ServiceRequest): Promise<void> => {
+  // Garante que o status seja PENDENTE ao criar
+  const requestToSave = { ...request, status: RequestStatus.PENDING };
+
   const { error } = await supabase
     .from(TABLE_NAME)
-    .insert([mapToDb(request)]);
+    .insert([mapToDb(requestToSave)]);
     
   if (error) console.error("ERRO AO SALVAR NO SUPABASE:", error.message);
   
   const requests = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-  const newRequests = [request, ...requests];
+  const newRequests = [requestToSave, ...requests];
   localStorage.setItem(STORAGE_KEY, JSON.stringify(newRequests));
+  
+  notifyDataChange();
 };
 
 export const updateRequestStatus = async (id: string, newStatus: RequestStatus): Promise<void> => {
@@ -105,6 +115,8 @@ export const updateRequestStatus = async (id: string, newStatus: RequestStatus):
     req.id === id ? { ...req, status: newStatus } : req
   );
   localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedRequests));
+  
+  notifyDataChange();
 };
 
 export const updateRequest = async (updatedRequest: ServiceRequest): Promise<void> => {
@@ -121,6 +133,8 @@ export const updateRequest = async (updatedRequest: ServiceRequest): Promise<voi
     requests[index] = updatedRequest;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(requests));
   }
+  
+  notifyDataChange();
 };
 
 export const deleteRequest = async (id: string): Promise<void> => {
@@ -130,4 +144,6 @@ export const deleteRequest = async (id: string): Promise<void> => {
   const requests = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
   const updatedRequests = requests.filter((req: ServiceRequest) => req.id !== id);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedRequests));
+  
+  notifyDataChange();
 };

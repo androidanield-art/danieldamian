@@ -279,7 +279,7 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({ title, status, requests, on
       
       <div className="p-3 space-y-3 overflow-y-auto flex-1 custom-scrollbar">
         {requests.map(req => (
-          <div key={req.id} className="bg-[#262626] p-4 rounded-lg shadow-sm border border-transparent hover:border-gray-600 transition-all group relative">
+          <div key={req.id} className="bg-[#262626] p-4 rounded-lg shadow-sm border border-transparent hover:border-gray-600 transition-all group relative animate-fade-in">
             <div className="flex justify-between items-start mb-2">
               <span className="text-[10px] text-gray-500 font-mono uppercase tracking-widest">
                 {new Date(req.createdAt).toLocaleDateString()}
@@ -388,6 +388,7 @@ export const AdminPanel: React.FC<{onLogout: () => void}> = ({onLogout}) => {
   const [selectedClientName, setSelectedClientName] = useState<string | null>(null);
   const isOnline = isSupabaseConfigured();
 
+  // Load data and setup real-time listeners
   useEffect(() => {
     const load = async () => {
       setIsLoading(true);
@@ -396,7 +397,20 @@ export const AdminPanel: React.FC<{onLogout: () => void}> = ({onLogout}) => {
       setIsLoading(false);
     };
     load();
-  }, [refresh]);
+
+    // Listeners para atualização automática (Cross-tab e Same-tab)
+    const handleUpdate = () => {
+      load(); // Recarrega os dados sem piscar a tela inteira
+    };
+
+    window.addEventListener('dnldm_data_updated', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+
+    return () => {
+      window.removeEventListener('dnldm_data_updated', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+    };
+  }, [refresh]); // Mantém refresh manual como fallback
 
   const handleStatusChange = async (id: string, newStatus: RequestStatus) => {
     await updateRequestStatus(id, newStatus);
@@ -639,6 +653,7 @@ export const AdminPanel: React.FC<{onLogout: () => void}> = ({onLogout}) => {
                     </div>
                   ) : (
                     <div className="flex gap-6 h-full items-start px-2">
+                      {/* PENDENTE */}
                       <KanbanColumn 
                         title="Pendente / Novos" 
                         status={RequestStatus.PENDING}
@@ -648,6 +663,7 @@ export const AdminPanel: React.FC<{onLogout: () => void}> = ({onLogout}) => {
                         onEdit={openEditProject}
                         icon={<Clock size={16} className="text-yellow-500" />}
                       />
+                      {/* EM PRODUÇÃO */}
                       <KanbanColumn 
                         title="Em Produção" 
                         status={RequestStatus.IN_PROGRESS}
@@ -657,6 +673,7 @@ export const AdminPanel: React.FC<{onLogout: () => void}> = ({onLogout}) => {
                         onEdit={openEditProject}
                         icon={<PlayCircle size={16} className="text-blue-500" />}
                       />
+                      {/* FINALIZADO */}
                       <KanbanColumn 
                         title="Finalizado" 
                         status={RequestStatus.COMPLETED}
