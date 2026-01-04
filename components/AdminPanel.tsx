@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ServiceRequest, RequestStatus, ServiceCategory } from '../types';
 import { getRequests, updateRequestStatus, deleteRequest, saveRequest, updateRequest, generateId } from '../services/dataService';
 import { isSupabaseConfigured, testConnection } from '../services/supabaseClient';
-import { Clock, CheckCircle, PlayCircle, Trash2, Mail, FileText, Plus, X, Edit2, DollarSign, RefreshCw, Wifi, WifiOff, Code, Monitor, Download, Users, LayoutDashboard, Key, Copy, ArrowRight, Database, AlertTriangle, Terminal } from 'lucide-react';
+import { Clock, CheckCircle, PlayCircle, Trash2, Mail, FileText, Plus, X, Edit2, DollarSign, RefreshCw, Wifi, WifiOff, Code, Monitor, Download, Users, LayoutDashboard, Key, Copy, ArrowRight, Database, AlertTriangle, Terminal, Upload } from 'lucide-react';
 
 // --- COMPONENTS ---
 
@@ -375,7 +375,85 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({ title, status, requests, on
   );
 };
 
-// --- DATABASE SETUP MODAL ---
+// --- DB TOOLS MODAL ---
+const DbToolsModal: React.FC<{onClose: () => void; onExport: () => void}> = ({onClose, onExport}) => {
+    const sqlCode = `
+-- CRIAÇÃO AUTOMÁTICA DA TABELA
+create table if not exists service_requests (
+  id uuid default gen_random_uuid() primary key,
+  created_at timestamptz default now(),
+  client_name text not null,
+  client_email text,
+  service_type text,
+  description text,
+  status text default 'Pendente',
+  tags text[] default '{}',
+  budget text,
+  reference_file_name text,
+  client_access_code text
+);
+
+-- HABILITAR SEGURANÇA
+alter table service_requests enable row level security;
+
+-- LIMPAR POLÍTICAS ANTIGAS
+drop policy if exists "Permitir acesso total publico" on service_requests;
+drop policy if exists "Public Access" on service_requests;
+
+-- CRIAR POLÍTICA DE ACESSO PÚBLICO
+create policy "Permitir acesso total publico"
+on service_requests
+for all
+to anon
+using (true)
+with check (true);
+    `;
+
+    return (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+            <div className="bg-brand-dark border border-white/10 w-full max-w-lg rounded-xl shadow-2xl p-6">
+                <div className="flex justify-between items-center mb-6 border-b border-white/10 pb-4">
+                   <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                       <Database size={20} className="text-blue-400"/> Ferramentas de Banco de Dados
+                   </h2>
+                   <button onClick={onClose} className="text-gray-400 hover:text-white"><X size={20}/></button>
+                </div>
+                
+                <div className="space-y-6">
+                    <div>
+                        <h3 className="text-sm font-bold text-gray-300 mb-2">1. Configurar Estrutura (SQL)</h3>
+                        <p className="text-xs text-gray-500 mb-3">
+                            Use este código no Editor SQL do Supabase para criar a tabela correta se ela não existir.
+                        </p>
+                        <button 
+                            onClick={() => {navigator.clipboard.writeText(sqlCode); alert('SQL Copiado!')}}
+                            className="w-full py-3 bg-blue-600/10 border border-blue-600/30 text-blue-400 hover:bg-blue-600/20 rounded-lg flex items-center justify-center gap-2 transition-colors font-medium text-sm"
+                        >
+                            <Copy size={16}/> Copiar Código SQL
+                        </button>
+                    </div>
+
+                    <div className="w-full h-px bg-white/5"></div>
+
+                    <div>
+                        <h3 className="text-sm font-bold text-gray-300 mb-2">2. Migrar Dados Locais (CSV)</h3>
+                        <p className="text-xs text-gray-500 mb-3">
+                            Baixe seus dados atuais e importe no Supabase (Table Editor &rarr; Import Data from CSV).
+                        </p>
+                        <button 
+                            onClick={onExport}
+                            className="w-full py-3 bg-green-600/10 border border-green-600/30 text-green-400 hover:bg-green-600/20 rounded-lg flex items-center justify-center gap-2 transition-colors font-medium text-sm"
+                        >
+                            <Download size={16}/> Baixar Tabela CSV
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+// --- DATABASE SETUP MODAL (CRITICAL ERROR) ---
 const DatabaseSetupModal: React.FC<{onClose: () => void}> = ({onClose}) => {
   const sqlCode = `
 -- CRIAÇÃO AUTOMÁTICA DA TABELA
@@ -469,6 +547,7 @@ export const AdminPanel: React.FC<{onLogout: () => void}> = ({onLogout}) => {
   const [viewMode, setViewMode] = useState<'dashboard' | 'clients'>('dashboard');
   const [selectedClientName, setSelectedClientName] = useState<string | null>(null);
   const [isDbMissing, setIsDbMissing] = useState(false);
+  const [isDbToolsOpen, setIsDbToolsOpen] = useState(false);
   
   const isOnline = isSupabaseConfigured();
 
@@ -544,7 +623,7 @@ export const AdminPanel: React.FC<{onLogout: () => void}> = ({onLogout}) => {
     ];
     
     const csvContent = requests.map(req => {
-      const date = new Date(req.createdAt).toISOString().replace('T', ' ').substring(0, 19);
+      const date = new Date(req.createdAt).toISOString(); // Use ISO string for Supabase compatibility
       const cleanDesc = (req.description || '').replace(/"/g, '""').replace(/\n/g, ' ');
       const cleanName = (req.clientName || '').replace(/"/g, '""');
       const tagsFormatted = `"{${(req.tags || []).join(',')}}"`;
@@ -597,6 +676,7 @@ export const AdminPanel: React.FC<{onLogout: () => void}> = ({onLogout}) => {
   return (
     <div className="min-h-screen bg-brand-black pt-24 pb-4 px-4 sm:px-6 lg:px-8 flex flex-col">
       {isDbMissing && <DatabaseSetupModal onClose={() => setIsDbMissing(false)} />}
+      {isDbToolsOpen && <DbToolsModal onClose={() => setIsDbToolsOpen(false)} onExport={handleExportCSV} />}
 
       <div className="max-w-[1920px] mx-auto w-full h-full flex flex-col flex-1">
         {/* Header Section */}
@@ -634,24 +714,27 @@ export const AdminPanel: React.FC<{onLogout: () => void}> = ({onLogout}) => {
           
           <div className="flex gap-3">
              <button
-               onClick={() => setShowDebug(!showDebug)}
-               className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors border ${showDebug ? 'bg-blue-500/20 border-blue-500 text-blue-400' : 'bg-white/5 border-white/10 text-gray-400 hover:text-white'}`}
+                onClick={() => setIsDbToolsOpen(true)}
+                className="flex items-center gap-2 px-3 py-2 bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 border border-blue-600/30 rounded-lg transition-colors"
+                title="Configuração do Banco de Dados"
              >
-               {showDebug ? <Monitor size={18} /> : <Code size={18} />}
+                <Database size={18} />
+                <span className="hidden lg:inline text-sm font-bold">Ferramentas BD</span>
              </button>
 
              <button
-               onClick={handleExportCSV}
-               className="flex items-center justify-center p-2 bg-white/5 text-white hover:bg-white/10 rounded-lg transition-colors border border-white/10"
-               title="Exportar CSV"
+               onClick={() => setShowDebug(!showDebug)}
+               className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors border ${showDebug ? 'bg-blue-500/20 border-blue-500 text-blue-400' : 'bg-white/5 border-white/10 text-gray-400 hover:text-white'}`}
+               title="Modo Debug"
              >
-               <Download size={20} />
+               {showDebug ? <Monitor size={18} /> : <Code size={18} />}
              </button>
 
              <button
                onClick={() => setRefresh(prev => prev + 1)}
                disabled={isLoading}
                className="flex items-center justify-center p-2 bg-white/5 text-white hover:bg-white/10 rounded-lg transition-colors border border-white/10"
+               title="Recarregar Dados"
              >
                <RefreshCw size={20} className={isLoading ? "animate-spin" : ""} />
              </button>
