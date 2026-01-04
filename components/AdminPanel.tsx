@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ServiceRequest, RequestStatus, ServiceCategory } from '../types';
-import { getRequests, updateRequestStatus, deleteRequest, saveRequest, updateRequest } from '../services/dataService';
+import { getRequests, updateRequestStatus, deleteRequest, saveRequest, updateRequest, generateId } from '../services/dataService';
 import { isSupabaseConfigured } from '../services/supabaseClient';
 import { Clock, CheckCircle, PlayCircle, Trash2, Mail, FileText, Plus, X, Edit2, DollarSign, RefreshCw, Database, Wifi, WifiOff, Code, Monitor, Download, Users, LayoutDashboard, Key, Copy, ArrowRight } from 'lucide-react';
 
@@ -47,7 +47,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, onSave, in
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const request: ServiceRequest = {
-      id: initialData?.id || crypto.randomUUID(),
+      id: initialData?.id || generateId(), // Usa helper seguro
       createdAt: initialData?.createdAt || Date.now(),
       clientName: formData.clientName || '',
       clientEmail: formData.clientEmail || '',

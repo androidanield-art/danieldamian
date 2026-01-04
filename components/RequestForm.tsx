@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ServiceCategory, ServiceRequest, RequestStatus } from '../types';
-import { saveRequest } from '../services/dataService';
+import { saveRequest, generateId } from '../services/dataService';
 import { Button } from './Button';
 import { Upload, CheckCircle, AlertCircle, ArrowRight, Loader2 } from 'lucide-react';
 
@@ -27,7 +27,7 @@ export const RequestForm: React.FC<RequestFormProps> = ({ initialService }) => {
       await new Promise(resolve => setTimeout(resolve, 800)); // Smooth UX delay
 
       const newRequest: ServiceRequest = {
-        id: crypto.randomUUID(),
+        id: generateId(), // Usa o helper seguro
         clientName: formData.name,
         clientEmail: formData.email,
         serviceType: formData.service,
@@ -182,7 +182,7 @@ export const RequestForm: React.FC<RequestFormProps> = ({ initialService }) => {
         {status === 'error' && (
           <div className="flex items-center gap-2 text-red-400 bg-red-900/10 p-4 border border-red-900/20 rounded-lg text-sm">
             <AlertCircle size={16} />
-            <span>Erro ao conectar com o servidor. Tente novamente.</span>
+            <span>Erro ao salvar localmente. Tente novamente.</span>
           </div>
         )}
 
