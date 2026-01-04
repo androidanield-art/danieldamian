@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { ServiceRequest, RequestStatus, ServiceCategory } from '../types';
 import { getRequests, updateRequestStatus, deleteRequest, saveRequest, updateRequest, generateId } from '../services/dataService';
-import { isSupabaseConfigured } from '../services/supabaseClient';
-import { Clock, CheckCircle, PlayCircle, Trash2, Mail, FileText, Plus, X, Edit2, DollarSign, RefreshCw, Database, Wifi, WifiOff, Code, Monitor, Download, Users, LayoutDashboard, Key, Copy, ArrowRight } from 'lucide-react';
+import { isSupabaseConfigured, testConnection } from '../services/supabaseClient';
+import { Clock, CheckCircle, PlayCircle, Trash2, Mail, FileText, Plus, X, Edit2, DollarSign, RefreshCw, Wifi, WifiOff, Code, Monitor, Download, Users, LayoutDashboard, Key, Copy, ArrowRight, Database, AlertTriangle, Terminal } from 'lucide-react';
 
 // --- COMPONENTS ---
 
@@ -375,6 +375,88 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({ title, status, requests, on
   );
 };
 
+// --- DATABASE SETUP MODAL ---
+const DatabaseSetupModal: React.FC<{onClose: () => void}> = ({onClose}) => {
+  const sqlCode = `
+-- CRIAÇÃO AUTOMÁTICA DA TABELA
+create table if not exists service_requests (
+  id uuid default gen_random_uuid() primary key,
+  created_at timestamptz default now(),
+  client_name text not null,
+  client_email text,
+  service_type text,
+  description text,
+  status text default 'Pendente',
+  tags text[] default '{}',
+  budget text,
+  reference_file_name text,
+  client_access_code text
+);
+
+-- HABILITAR SEGURANÇA
+alter table service_requests enable row level security;
+
+-- LIMPAR POLÍTICAS ANTIGAS
+drop policy if exists "Permitir acesso total publico" on service_requests;
+drop policy if exists "Public Access" on service_requests;
+
+-- CRIAR POLÍTICA DE ACESSO PÚBLICO
+create policy "Permitir acesso total publico"
+on service_requests
+for all
+to anon
+using (true)
+with check (true);
+  `;
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/95 backdrop-blur-md">
+       <div className="bg-brand-dark border border-red-500/30 w-full max-w-2xl rounded-xl shadow-2xl p-8 relative">
+          <div className="flex items-start gap-4 mb-6">
+             <div className="p-3 bg-red-500/10 rounded-full">
+               <AlertTriangle size={32} className="text-red-500" />
+             </div>
+             <div>
+               <h2 className="text-2xl font-black text-white mb-2">Banco de Dados Incompleto</h2>
+               <p className="text-gray-400">
+                 O sistema está conectado ao Supabase, mas a tabela de projetos não foi encontrada.
+                 Sem isso, seus projetos não serão salvos na nuvem.
+               </p>
+             </div>
+          </div>
+
+          <div className="bg-black/50 border border-white/10 rounded-lg p-4 mb-6 overflow-hidden">
+             <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 flex items-center gap-2">
+               <Terminal size={12}/> Instruções
+             </h4>
+             <ol className="list-decimal list-inside text-sm text-gray-300 space-y-2">
+               <li>Copie o código SQL abaixo.</li>
+               <li>Acesse o <a href="https://supabase.com/dashboard/project/hakvrpgmieqhnvduppnh/sql" target="_blank" className="text-blue-400 underline hover:text-blue-300">SQL Editor do seu Projeto Supabase</a>.</li>
+               <li>Cole o código e clique em <strong>Run</strong>.</li>
+               <li>Recarregue esta página.</li>
+             </ol>
+          </div>
+
+          <button 
+            onClick={() => {navigator.clipboard.writeText(sqlCode); alert('SQL Copiado!')}}
+            className="w-full py-4 bg-white text-black font-bold text-lg rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center gap-2 mb-4"
+          >
+            <Copy size={20} />
+            Copiar Código SQL
+          </button>
+          
+          <button 
+             onClick={onClose}
+             className="w-full py-3 text-gray-500 hover:text-white text-sm transition-colors"
+          >
+            Fechar (Continuar Offline)
+          </button>
+       </div>
+    </div>
+  )
+}
+
+
 // --- MAIN PANEL ---
 
 export const AdminPanel: React.FC<{onLogout: () => void}> = ({onLogout}) => {
@@ -386,12 +468,23 @@ export const AdminPanel: React.FC<{onLogout: () => void}> = ({onLogout}) => {
   const [showDebug, setShowDebug] = useState(false);
   const [viewMode, setViewMode] = useState<'dashboard' | 'clients'>('dashboard');
   const [selectedClientName, setSelectedClientName] = useState<string | null>(null);
+  const [isDbMissing, setIsDbMissing] = useState(false);
+  
   const isOnline = isSupabaseConfigured();
 
   // Load data and setup real-time listeners
   useEffect(() => {
     const load = async () => {
       setIsLoading(true);
+      
+      // Verifica banco de dados primeiro
+      const dbCheck = await testConnection();
+      if (dbCheck.code === 'TABLE_MISSING') {
+         setIsDbMissing(true);
+      } else {
+         setIsDbMissing(false);
+      }
+
       const data = await getRequests();
       setRequests(data);
       setIsLoading(false);
@@ -503,6 +596,8 @@ export const AdminPanel: React.FC<{onLogout: () => void}> = ({onLogout}) => {
 
   return (
     <div className="min-h-screen bg-brand-black pt-24 pb-4 px-4 sm:px-6 lg:px-8 flex flex-col">
+      {isDbMissing && <DatabaseSetupModal onClose={() => setIsDbMissing(false)} />}
+
       <div className="max-w-[1920px] mx-auto w-full h-full flex flex-col flex-1">
         {/* Header Section */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 shrink-0 bg-brand-dark/50 p-4 rounded-xl border border-white/5">
@@ -512,9 +607,9 @@ export const AdminPanel: React.FC<{onLogout: () => void}> = ({onLogout}) => {
                   PAINEL ADMIN
                 </h2>
                 <div className="flex items-center gap-2 mt-1">
-                  <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold border ${isOnline ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'}`}>
-                    {isOnline ? <Wifi size={10} /> : <WifiOff size={10} />}
-                    {isOnline ? 'CONECTADO' : 'OFFLINE'}
+                  <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold border ${!isDbMissing && isOnline ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>
+                    {!isDbMissing && isOnline ? <Wifi size={10} /> : <WifiOff size={10} />}
+                    {!isDbMissing && isOnline ? 'CONECTADO' : 'SEM CONEXÃO AO BANCO'}
                   </div>
                 </div>
              </div>
